@@ -43,31 +43,26 @@
   </div>
 
   <script type="module">
-    import { getUser, apiFetch, initHamburger, updateNav, requireAuth } from '/js/common.js';
+    import { getUser, apiFetch, initHamburger, updateNav } from '/js/common.js';
 
-    // Check authentication and admin role
-    const authenticated = (() => {
-      if (!getUser()) {
-        window.location.href = '/login.html';
-        return false;
-      }
+    // ---- CHECK AUTH & ROLE (no return, just redirect) ----
+    if (!getUser()) {
+      window.location.href = '/login.html';
+    } else {
       const user = getUser();
       if (user.role !== 'admin') {
         alert('Access denied. Admins only.');
         window.location.href = '/';
-        return false;
+      } else {
+        // All good – initialize and load data
+        initHamburger();
+        updateNav();
+        loadAdminAnnouncements();
+        loadUsers();
       }
-      return true;
-    })();
-
-    if (authenticated) {
-      initHamburger();
-      updateNav();
-      loadAdminAnnouncements();
-      loadUsers();
     }
 
-    // File upload helper
+    // ---- FILE UPLOAD HELPER ----
     async function uploadFiles(files) {
       const token = localStorage.getItem('token');
       const formData = new FormData();
@@ -86,7 +81,7 @@
       throw new Error('Upload failed');
     }
 
-    // Create announcement
+    // ---- CREATE ANNOUNCEMENT ----
     document.getElementById('createAnnouncementForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const title = document.getElementById('title').value;
@@ -115,6 +110,7 @@
       }
     });
 
+    // ---- LOAD ANNOUNCEMENTS FOR ADMIN ----
     async function loadAdminAnnouncements() {
       const res = await apiFetch('/announcements');
       const container = document.getElementById('adminAnnouncementsList');
@@ -146,6 +142,7 @@
       });
     }
 
+    // ---- LOAD USERS ----
     async function loadUsers() {
       const res = await apiFetch('/users/all');
       const container = document.getElementById('usersList');
