@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - TK Cam Norte</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <button class="hamburger" id="hamburger">☰</button>
+    <ul class="nav-links" id="navLinks"></ul>
+    <div class="card">
+      <h2>My Profile</h2>
+      <div id="profileInfo">
+        <p><strong>Full Name:</strong> <span id="displayFullName"></span></p>
+        <p><strong>Username:</strong> <span id="displayUsername"></span></p>
+        <p><strong>Role:</strong> <span id="displayRole"></span></p>
+        <div id="profileImageDiv">
+          <img id="profileImage" style="max-width: 150px; border-radius: 50%;" />
+          <br>
+          <input type="file" id="profileImageUpload" accept="image/*">
+          <button id="uploadProfileImageBtn" class="btn">Upload New Image</button>
+        </div>
+      </div>
+      <hr>
+      <h3>Edit Profile</h3>
+      <form id="updateProfileForm">
+        <label>Full Name</label>
+        <input type="text" id="editFullName" required>
+        <button type="submit" class="btn">Update Name</button>
+      </form>
+      <hr>
+      <h3>Change Password</h3>
+      <form id="changePasswordForm">
+        <input type="password" id="oldPassword" placeholder="Old Password" required>
+        <input type="password" id="newPassword" placeholder="New Password" required>
+        <button type="submit" class="btn">Change Password</button>
+      </form>
+    </div>
+  </div>
+  <script type="module">
+    import { getUser, getToken, apiFetch, initHamburger, updateNav } from '/js/common.js';
+
+    let currentUser = null;
+
+    async function loadProfile() {
+      const res = await apiFetch('/users/profile');
+      if (res && res.ok) {
+        currentUser = await res.json();
+        document.getElementById('displayFullName').innerText = currentUser.full_name;
+        document.getElementById('displayUsername').innerText = currentUser.username;
+        document.getElementById('displayRole').innerText = getUser()?.role || 'user';
+        const img = document.getElementById('profileImage');
+        if (currentUser.profile_image_url) {
+          img.src = currentUser.profile_image_url;
+          img.style.display = 'block';
+        } else {
+          img.style.display = 'none';
+        }
+        document.getElementById('editFullName').value = currentUser.full_name;
+      } else {
+        alert('Failed to load profile');
+      }
+    }
+
+    // Update full name
+    document.getElementById('updateProfileForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fullName = document.getElementById('editFullName').value;
+      const res = await apiFetch('/users/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ fullName })
+      });
+      if (res && res.ok) {
+        alert('Name updated');
+        loadProfile();
+        // Update stored user
+        const user = getUser();
+        user.fullName = fullName;
+        localStorage.setItem('user', JSON.stringify(user));
+      } else {
+        alert('Update failed');
+      }
+    });
+
+    // Change password
+    document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const oldPassword = document.getElementById('oldPassword').value;
+      const newPassword = document.getElementById('newPassword').value;
+      const res = await apiFetch('/users/profile', {
+        method: 'PUT',
+        body: JSON.stringify({ oldPassword, newPassword })
+      });
+      if (res && res.ok) {
+        alert('Password changed. Please login again.');
+        localStorage.clear();
+        window.location.href = '/login.html';
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to change password');
+      }
+    });
+
+    // Profile image upload
+    document.getElementById('uploadProfileImageBtn').addEventListener('click', async () => {
+      const fileInput = document.getElementById('profileImageUpload');
+      const file = fileInput.files[0];
+      if (!file) return alert('Select an image first');
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const token = getToken();
+      const uploadRes = await fetch('/api/upload?bucket=profile-images', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (uploadRes.ok) {
+        const result = await uploadRes.json();
+        const fileUrl = result.files[0].fileUrl;
+        // Update user profile with image URL
+        const updateRes = await apiFetch('/users/profile', {
+          method: 'PUT',
+          body: JSON.stringify({ profileImageUrl: fileUrl })
+        });
+        if (updateRes && updateRes.ok) {
+          alert('Profile image updated');
+          loadProfile();
+          // Update stored user
+          const user = getUser();
+          user.profileImageUrl = fileUrl;
+          localStorage.setItem('user', JSON.stringify(user));
+        } else {
+          alert('Failed to save image URL');
+        }
+      } else {
+        alert('Upload failed');
+      }
+    });
+
+    updateNav();
+    initHamburger();
+    loadProfile();
+  </script>
+</body>
+</html>
