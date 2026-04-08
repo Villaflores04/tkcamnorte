@@ -4,28 +4,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TK Cam Norte Announcements</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
+  <button class="hamburger" id="hamburger">☰</button>
+  <ul class="nav-links" id="navLinks"></ul>
   <div class="container">
-    <button class="hamburger" id="hamburger">☰</button>
-    <ul class="nav-links" id="navLinks"></ul>
-    <h1>Announcements</h1>
+    <h1>📢 Announcements</h1>
     <select id="categoryFilter">
       <option value="all">All Categories</option>
-      <option value="song_lineup">Song Line-up</option>
-      <option value="deadline">Deadline</option>
-      <option value="payment">Payment</option>
-      <option value="project">Project</option>
-      <option value="general">General</option>
+      <option value="song_lineup">🎵 Song Line-up</option>
+      <option value="deadline">⏰ Deadline</option>
+      <option value="payment">💰 Payment</option>
+      <option value="project">📁 Project</option>
+      <option value="general">📌 General</option>
     </select>
     <div id="announcementsList"></div>
   </div>
   <script type="module">
-    import { getToken, getUser, apiFetch, initHamburger, updateNav } from '/js/common.js';
-    window.getToken = getToken;
-    window.getUser = getUser;
-    window.apiFetch = apiFetch;
+    import { getUser, apiFetch, initHamburger, updateNav, requireAuth } from '/js/common.js';
+
+    // Protect page: redirect to login if not authenticated
+    if (!requireAuth()) {
+      // requireAuth already redirects
+    } else {
+      initHamburger();
+      updateNav();
+      loadAnnouncements();
+    }
 
     async function loadAnnouncements(category = 'all') {
       const res = await apiFetch(`/announcements?category=${category}`);
@@ -37,25 +44,24 @@
 
     function renderAnnouncements(announcements) {
       const container = document.getElementById('announcementsList');
+      if (!container) return;
       container.innerHTML = announcements.map(a => `
-        <div class="card announcement ${a.is_pinned ? 'pinned' : ''}">
-          <h3>${a.title} ${a.is_pinned ? '📌' : ''}</h3>
-          <p>${a.content}</p>
+        <div class="card announcement ${a.is_pinned ? 'pinned' : ''}" data-id="${a.id}">
+          <h3>${escapeHtml(a.title)} ${a.is_pinned ? '📌' : ''}</h3>
+          <p>${escapeHtml(a.content)}</p>
           <small>Category: ${a.category} | Posted by ${a.created_by_user?.full_name || 'Unknown'} on ${new Date(a.created_at).toLocaleDateString()}</small>
-          ${a.deadline_date ? `<p><strong>Deadline:</strong> ${new Date(a.deadline_date).toLocaleDateString()}</p>` : ''}
+          ${a.deadline_date ? `<p><strong>⏰ Deadline:</strong> ${new Date(a.deadline_date).toLocaleDateString()}</p>` : ''}
           <div class="attachments">
-            ${(a.attachments || []).map(att => `<a href="${att.file_url}" target="_blank">📎 ${att.file_name}</a>`).join('')}
+            ${(a.attachments || []).map(att => `<a href="${att.file_url}" target="_blank" rel="noopener">📎 ${escapeHtml(att.file_name)}</a>`).join('')}
           </div>
           <div class="comments-section" data-id="${a.id}">
-            <h4>Comments</h4>
+            <h4>💬 Comments</h4>
             <div class="comments-list"></div>
-            ${getUser() ? `<textarea class="comment-text" placeholder="Add a comment..."></textarea><button class="btn add-comment" data-id="${a.id}">Comment</button>` : '<p>Login to comment</p>'}
+            ${getUser() ? `<textarea class="comment-text" placeholder="Add a comment..."></textarea><button class="btn add-comment" data-id="${a.id}">Post Comment</button>` : '<p><a href="/login.html">Login</a> to comment</p>'}
           </div>
         </div>
       `).join('');
-      // Load comments for each announcement
       announcements.forEach(a => loadComments(a.id));
-      // Attach comment event listeners
       document.querySelectorAll('.add-comment').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           const announcementId = btn.dataset.id;
@@ -84,21 +90,27 @@
         if (container) {
           container.innerHTML = comments.map(c => `
             <div class="comment">
-              <strong>${c.user.full_name}</strong> <small>${new Date(c.created_at).toLocaleString()}</small>
-              <p>${c.text}</p>
+              <strong>${escapeHtml(c.user.full_name)}</strong> <small>${new Date(c.created_at).toLocaleString()}</small>
+              <p>${escapeHtml(c.text)}</p>
             </div>
           `).join('');
         }
       }
     }
 
-    document.getElementById('categoryFilter').addEventListener('change', (e) => {
+    document.getElementById('categoryFilter')?.addEventListener('change', (e) => {
       loadAnnouncements(e.target.value);
     });
 
-    updateNav();
-    initHamburger();
-    loadAnnouncements();
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
   </script>
 </body>
 </html>
