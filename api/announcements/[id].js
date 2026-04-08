@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
   // DELETE: remove announcement and its attachments
   if (req.method === 'DELETE') {
-    // First delete attachments (optional – foreign key CASCADE can do this, but we do it explicitly)
+    // Delete attachments first (optional, but good practice)
     const { error: attachError } = await supabase
       .from('announcement_attachments')
       .delete()
@@ -32,6 +32,6 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true });
   }
 
-  // (Optional) PUT for updates – you can leave it empty or implement later
+  // Optionally support PUT for updates – but not required
   res.status(405).json({ error: 'Method not allowed' });
 }
