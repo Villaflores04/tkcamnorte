@@ -12,6 +12,8 @@
   <ul class="nav-links" id="navLinks"></ul>
   <div class="container">
     <h1>Admin Panel</h1>
+    
+    <!-- Create Announcement Form -->
     <div class="card">
       <h2>Create Announcement</h2>
       <form id="createAnnouncementForm">
@@ -27,15 +29,19 @@
         <label>Deadline (optional)</label>
         <input type="date" id="deadlineDate">
         <label><input type="checkbox" id="isPinned"> Pin this announcement</label>
-        <label>Attachments</label>
+        <label>Attachments (images/files)</label>
         <input type="file" id="attachments" multiple>
-        <button type="submit" class="btn">Publish</button>
+        <button type="submit" class="btn">Publish Announcement</button>
       </form>
     </div>
+
+    <!-- Manage Users -->
     <div class="card">
       <h2>Manage Users</h2>
       <div id="usersList"></div>
     </div>
+
+    <!-- Existing Announcements (with delete) -->
     <div class="card">
       <h2>Existing Announcements</h2>
       <div id="adminAnnouncementsList"></div>
@@ -45,7 +51,7 @@
   <script type="module">
     import { getUser, apiFetch, initHamburger, updateNav } from '/js/common.js';
 
-    // ---- CHECK AUTH & ROLE (no return, just redirect) ----
+    // ---- AUTH CHECK ----
     if (!getUser()) {
       window.location.href = '/login.html';
     } else {
@@ -54,7 +60,6 @@
         alert('Access denied. Admins only.');
         window.location.href = '/';
       } else {
-        // All good – initialize and load data
         initHamburger();
         updateNav();
         loadAdminAnnouncements();
@@ -110,7 +115,7 @@
       }
     });
 
-    // ---- LOAD ANNOUNCEMENTS FOR ADMIN ----
+    // ---- LOAD ANNOUNCEMENTS FOR ADMIN (with delete) ----
     async function loadAdminAnnouncements() {
       const res = await apiFetch('/announcements');
       const container = document.getElementById('adminAnnouncementsList');
@@ -126,23 +131,32 @@
       }
       container.innerHTML = data.map(a => `
         <div class="card">
-          <h3>${escapeHtml(a.title)}</h3>
-          <p>${escapeHtml(a.content.substring(0,100))}...</p>
+          <h3>${escapeHtml(a.title)} ${a.is_pinned ? '📌' : ''}</h3>
+          <p>${escapeHtml(a.content.substring(0, 100))}...</p>
+          <small>Category: ${a.category} | Posted: ${new Date(a.created_at).toLocaleString()}</small>
+          <br><br>
           <button class="btn btn-danger delete-announcement" data-id="${a.id}">Delete</button>
         </div>
       `).join('');
+
+      // Attach delete handlers
       document.querySelectorAll('.delete-announcement').forEach(btn => {
         btn.onclick = async () => {
-          if (confirm('Delete this announcement permanently?')) {
-            const delRes = await apiFetch(`/announcements/${btn.dataset.id}`, { method: 'DELETE' });
-            if (delRes && delRes.ok) loadAdminAnnouncements();
-            else alert('Delete failed');
+          const id = btn.getAttribute('data-id');
+          if (!confirm('Delete this announcement permanently?')) return;
+          const delRes = await apiFetch(`/announcements/${id}`, { method: 'DELETE' });
+          if (delRes && delRes.ok) {
+            alert('Deleted successfully');
+            loadAdminAnnouncements(); // refresh list
+          } else {
+            const errorText = await delRes?.text();
+            alert('Delete failed: ' + (errorText || 'Unknown error'));
           }
         };
       });
     }
 
-    // ---- LOAD USERS ----
+    // ---- LOAD USERS (with promote to admin) ----
     async function loadUsers() {
       const res = await apiFetch('/users/all');
       const container = document.getElementById('usersList');
@@ -158,16 +172,19 @@
       }
       container.innerHTML = users.map(u => `
         <div class="card">
-          <p><strong>${escapeHtml(u.full_name)}</strong> (@${escapeHtml(u.username)}) - ${u.role}</p>
-          ${u.role !== 'admin' ? `<button class="btn btn-success promote-user" data-id="${u.id}">Promote to Admin</button>` : ''}
+          <p><strong>${escapeHtml(u.full_name)}</strong> (@${escapeHtml(u.username)}) - Role: ${u.role}</p>
+          ${u.role !== 'admin' ? `<button class="btn btn-success promote-user" data-id="${u.id}">Promote to Admin</button>` : '<span>✅ Admin</span>'}
         </div>
       `).join('');
+
+      // Attach promote handlers
       document.querySelectorAll('.promote-user').forEach(btn => {
         btn.onclick = async () => {
-          const promoteRes = await apiFetch('/users/promote', { method: 'POST', body: JSON.stringify({ userId: btn.dataset.id }) });
+          const userId = btn.getAttribute('data-id');
+          const promoteRes = await apiFetch('/users/promote', { method: 'POST', body: JSON.stringify({ userId }) });
           if (promoteRes && promoteRes.ok) {
             alert('User promoted to admin');
-            loadUsers();
+            loadUsers(); // refresh list
           } else {
             alert('Promotion failed');
           }
@@ -175,6 +192,7 @@
       });
     }
 
+    // ---- HELPER: escape HTML to prevent XSS ----
     function escapeHtml(str) {
       if (!str) return '';
       return str.replace(/[&<>]/g, function(m) {
