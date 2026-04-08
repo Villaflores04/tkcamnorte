@@ -1,6 +1,5 @@
 const API_BASE = '/api';
 
-// Store token
 export function setToken(token) {
   localStorage.setItem('token', token);
 }
@@ -27,7 +26,6 @@ export function clearSession() {
   localStorage.removeItem('user');
 }
 
-// Fetch wrapper with auth
 export async function apiFetch(endpoint, options = {}) {
   const token = getToken();
   const headers = {
@@ -49,7 +47,6 @@ export async function apiFetch(endpoint, options = {}) {
   return response;
 }
 
-// Hamburger menu toggle
 export function initHamburger() {
   const hamburger = document.getElementById('hamburger');
   const navLinks = document.getElementById('navLinks');
@@ -60,7 +57,6 @@ export function initHamburger() {
   }
 }
 
-// Update nav based on login state
 export function updateNav() {
   const user = getUser();
   const nav = document.getElementById('navLinks');
@@ -72,11 +68,14 @@ export function updateNav() {
       ${user.role === 'admin' ? '<li><a href="/admin.html">Admin</a></li>' : ''}
       <li><a href="#" id="logoutBtn">Logout</a></li>
     `;
-    document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      clearSession();
-      window.location.href = '/login.html';
-    });
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        clearSession();
+        window.location.href = '/login.html';
+      });
+    }
   } else {
     nav.innerHTML = `
       <li><a href="/login.html">Login</a></li>
