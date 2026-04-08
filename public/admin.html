@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - TK Cam Norte</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <button class="hamburger" id="hamburger">☰</button>
+    <ul class="nav-links" id="navLinks"></ul>
+    <div class="card">
+      <h2>Create New Announcement</h2>
+      <form id="createAnnouncementForm">
+        <input type="text" id="title" placeholder="Title" required>
+        <textarea id="content" rows="5" placeholder="Content" required></textarea>
+        <select id="category">
+          <option value="song_lineup">Song Line-up</option>
+          <option value="deadline">Deadline</option>
+          <option value="payment">Payment</option>
+          <option value="project">Project</option>
+          <option value="general">General</option>
+        </select>
+        <label>Deadline (optional)</label>
+        <input type="date" id="deadlineDate">
+        <label><input type="checkbox" id="isPinned"> Pin this announcement</label>
+        <label>Attachments (images/files)</label>
+        <input type="file" id="attachments" multiple>
+        <button type="submit" class="btn">Publish Announcement</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Existing Announcements</h2>
+      <div id="adminAnnouncementsList"></div>
+    </div>
+  </div>
+  <script type="module">
+    import { getUser, apiFetch, initHamburger, updateNav } from '/js/common.js';
+
+    // Redirect if not admin
+    const user = getUser();
+    if (!user || user.role !== 'admin') {
+      alert('Access denied. Admins only.');
+      window.location.href = '/';
+    }
+
+    async function uploadFiles(files) {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+      const res = await fetch('/api/upload?bucket=announcement-attachments', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (res.ok) {
+        const result = await res.json();
+        return result.files; // array of {fileUrl, fileName, fileSize}
+      }
+      throw new Error('Upload failed');
+    }
+
+    document.getElementById('createAnnouncementForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('title').value;
+      const content = document.getElementById('content').value;
+      const category = document.getElementById('category').value;
+      const deadlineDate = document.getElementById('deadlineDate').value || null;
+      const isPinned = document.getElementById('isPinned').checked;
+      const files = document.getElementById('attachments').files;
+
+      let attachments = [];
+      if (files.length) {
+        attachments = await uploadFiles(files);
+      }
+
+      const payload = { title, content, category, deadlineDate, isPinned, attachments };
+      const res = await apiFetch('/announcements', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      if (res && res.ok) {
+        alert('Announcement created!');
+        document.getElementById('createAnnouncementForm').reset();
+        loadAdminAnnouncements();
+      } else {
+        alert('Failed to create announcement');
+      }
+    });
+
+    async function loadAdminAnnouncements() {
+      const res = await apiFetch('/announcements');
+      if (res && res.ok) {
+        const data = await res.json();
+        const container = document.getElementById('adminAnnouncementsList');
+        container.innerHTML = data.map(a => `
+          <div class="card" data-id="${a.id}">
+            <h3>${a.title} ${a.is_pinned ? '📌' : ''}</h3>
+            <p>${a.content.substring(0, 100)}...</p>
+            <small>Category: ${a.category}</small>
+            <br>
+            <button class="btn delete-announcement" data-id="${a.id}">Delete</button>
+          </div>
+        `).join('');
+        document.querySelectorAll('.delete-announcement').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            if (confirm('Delete this announcement?')) {
+              const id = btn.dataset.id;
+              const delRes = await apiFetch(`/announcements/${id}`, { method: 'DELETE' });
+              if (delRes && delRes.ok) {
+                loadAdminAnnouncements();
+              } else {
+                alert('Delete failed');
+              }
+            }
+          });
+        });
+      }
+    }
+
+    updateNav();
+    initHamburger();
+    loadAdminAnnouncements();
+  </script>
+</body>
+</html>
