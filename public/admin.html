@@ -4,208 +4,153 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Panel - TK Cam Norte</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-
-<nav class="desktop-nav" id="desktopNav">
-  <div class="logo">TK Cam Norte Admin</div>
-  <ul class="nav-links-desktop" id="navLinksDesktop"></ul>
-</nav>
-
-<button class="hamburger" id="hamburger">☰</button>
-<ul class="nav-links-mobile" id="navLinksMobile"></ul>
-
-<div class="container">
-  <h1>🛠️ Admin Panel</h1>
-
-  <div class="card">
-    <h2>📝 Create Announcement</h2>
-    <form id="createAnnouncementForm">
-      <input type="text" id="title" placeholder="Title" required>
-      <textarea id="content" rows="4" placeholder="Content" required></textarea>
-      <select id="category">
-        <option value="song_lineup">Song Line-up</option>
-        <option value="deadline">Deadline</option>
-        <option value="payment">Payment</option>
-        <option value="project">Project</option>
-        <option value="general">General</option>
-      </select>
-      <label>Deadline (optional)</label>
-      <input type="date" id="deadlineDate">
-      <label><input type="checkbox" id="isPinned"> Pin this announcement</label>
-      <label>Attachments (images/files)</label>
-      <input type="file" id="attachments" multiple>
-      <button type="submit" class="btn">Publish Announcement</button>
-    </form>
+  <button class="hamburger" id="hamburger">☰</button>
+  <ul class="nav-links" id="navLinks"></ul>
+  <div class="container">
+    <h1>Admin Panel</h1>
+    <div class="card">
+      <h2>Create Announcement</h2>
+      <form id="createAnnouncementForm">
+        <input type="text" id="title" placeholder="Title" required>
+        <textarea id="content" rows="4" placeholder="Content" required></textarea>
+        <select id="category">
+          <option value="song_lineup">Song Line-up</option>
+          <option value="deadline">Deadline</option>
+          <option value="payment">Payment</option>
+          <option value="project">Project</option>
+          <option value="general">General</option>
+        </select>
+        <label>Deadline (optional)</label>
+        <input type="date" id="deadlineDate">
+        <label><input type="checkbox" id="isPinned"> Pin this announcement</label>
+        <label>Attachments</label>
+        <input type="file" id="attachments" multiple>
+        <button type="submit" class="btn">Publish</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Manage Users</h2>
+      <div id="usersList"></div>
+    </div>
+    <div class="card">
+      <h2>Existing Announcements</h2>
+      <div id="adminAnnouncementsList"></div>
+    </div>
   </div>
+  <script type="module">
+    import { getUser, apiFetch, initHamburger, updateNav, requireAuth } from '/js/common.js';
 
-  <div class="card">
-    <h2>👥 Manage Users</h2>
-    <div id="usersList"></div>
-  </div>
-
-  <div class="card">
-    <h2>🗑️ Existing Announcements</h2>
-    <div id="adminAnnouncementsList"></div>
-  </div>
-</div>
-
-<script type="module">
-  import { getUser, apiFetch, initHamburger, renderNavigation, requireAuth } from '/js/common.js';
-
-  if (!requireAuth()) return;
-  const user = getUser();
-  if (user.role !== 'admin') {
-    alert('Access denied. Admins only.');
-    window.location.href = '/';
-  }
-
-  renderNavigation();
-  initHamburger();
-
-  // File upload helper
-  async function uploadFiles(files) {
-    const token = localStorage.getItem('token');
-    const formData = new FormData();
-    for (let i = 0; i < files.length; i++) {
-      formData.append('files', files[i]);
+    if (!requireAuth()) return;
+    const user = getUser();
+    if (user.role !== 'admin') {
+      alert('Access denied');
+      window.location.href = '/';
     }
-    const res = await fetch('/api/upload?bucket=announcement-attachments', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData
-    });
-    if (res.ok) {
-      const result = await res.json();
-      return result.files;
-    }
-    throw new Error('Upload failed');
-  }
+    initHamburger();
+    updateNav();
 
-  // Create announcement
-  document.getElementById('createAnnouncementForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const title = document.getElementById('title').value;
-    const content = document.getElementById('content').value;
-    const category = document.getElementById('category').value;
-    const deadlineDate = document.getElementById('deadlineDate').value || null;
-    const isPinned = document.getElementById('isPinned').checked;
-    const files = document.getElementById('attachments').files;
-
-    let attachments = [];
-    if (files.length) {
-      try {
-        attachments = await uploadFiles(files);
-      } catch (err) {
-        alert('File upload failed: ' + err.message);
-        return;
+    async function uploadFiles(files) {
+      const token = localStorage.getItem('token');
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
       }
-    }
-
-    const payload = { title, content, category, deadlineDate, isPinned, attachments };
-    const res = await apiFetch('/announcements', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-    if (res && res.ok) {
-      alert('Announcement created!');
-      document.getElementById('createAnnouncementForm').reset();
-      loadAdminAnnouncements();
-    } else {
-      alert('Failed to create announcement');
-    }
-  });
-
-  // Load announcements for admin list
-  async function loadAdminAnnouncements() {
-    const res = await apiFetch('/announcements');
-    if (res && res.ok) {
-      const data = await res.json();
-      const container = document.getElementById('adminAnnouncementsList');
-      if (!container) return;
-      if (data.length === 0) {
-        container.innerHTML = '<div class="card">No announcements yet.</div>';
-        return;
+      const res = await fetch('/api/upload?bucket=announcement-attachments', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (res.ok) {
+        const result = await res.json();
+        return result.files;
       }
-      container.innerHTML = data.map(a => `
-        <div class="card" data-id="${a.id}">
-          <h3>${escapeHtml(a.title)} ${a.is_pinned ? '📌' : ''}</h3>
-          <p>${escapeHtml(a.content.substring(0, 100))}...</p>
-          <small>Category: ${a.category}</small>
-          <br><br>
-          <button class="btn btn-danger delete-announcement" data-id="${a.id}">Delete Announcement</button>
-        </div>
-      `).join('');
-      document.querySelectorAll('.delete-announcement').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          if (confirm('Delete this announcement permanently?')) {
-            const id = btn.dataset.id;
-            const delRes = await apiFetch(`/announcements/${id}`, { method: 'DELETE' });
-            if (delRes && delRes.ok) {
-              loadAdminAnnouncements();
-            } else {
-              alert('Delete failed');
+      throw new Error('Upload failed');
+    }
+
+    document.getElementById('createAnnouncementForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = document.getElementById('title').value;
+      const content = document.getElementById('content').value;
+      const category = document.getElementById('category').value;
+      const deadlineDate = document.getElementById('deadlineDate').value || null;
+      const isPinned = document.getElementById('isPinned').checked;
+      const files = document.getElementById('attachments').files;
+      let attachments = [];
+      if (files.length) attachments = await uploadFiles(files);
+      const payload = { title, content, category, deadlineDate, isPinned, attachments };
+      const res = await apiFetch('/announcements', { method: 'POST', body: JSON.stringify(payload) });
+      if (res && res.ok) {
+        alert('Created!');
+        document.getElementById('createAnnouncementForm').reset();
+        loadAdminAnnouncements();
+      } else alert('Failed');
+    });
+
+    async function loadAdminAnnouncements() {
+      const res = await apiFetch('/announcements');
+      if (res && res.ok) {
+        const data = await res.json();
+        const container = document.getElementById('adminAnnouncementsList');
+        container.innerHTML = data.map(a => `
+          <div class="card">
+            <h3>${escapeHtml(a.title)}</h3>
+            <p>${escapeHtml(a.content.substring(0,100))}...</p>
+            <button class="btn btn-danger delete-announcement" data-id="${a.id}">Delete</button>
+          </div>
+        `).join('');
+        document.querySelectorAll('.delete-announcement').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            if (confirm('Delete?')) {
+              const id = btn.dataset.id;
+              const delRes = await apiFetch(`/announcements/${id}`, { method: 'DELETE' });
+              if (delRes && delRes.ok) loadAdminAnnouncements();
+              else alert('Delete failed');
             }
-          }
-        });
-      });
-    } else {
-      console.error('Failed to load announcements');
-      document.getElementById('adminAnnouncementsList').innerHTML = '<div class="card">⚠️ Error loading announcements.</div>';
-    }
-  }
-
-  // Load users list
-  async function loadUsers() {
-    const res = await apiFetch('/users/all');
-    if (res && res.ok) {
-      const users = await res.json();
-      const container = document.getElementById('usersList');
-      if (!container) return;
-      if (users.length === 0) {
-        container.innerHTML = '<div class="card">No users found.</div>';
-        return;
-      }
-      container.innerHTML = users.map(u => `
-        <div class="card" style="margin-bottom: 0.8rem;">
-          <p><strong>${escapeHtml(u.full_name)}</strong> (@${escapeHtml(u.username)}) - Role: ${u.role}</p>
-          ${u.role !== 'admin' ? `<button class="btn btn-success promote-user" data-id="${u.id}">Promote to Admin</button>` : '<span>✅ Admin</span>'}
-        </div>
-      `).join('');
-      document.querySelectorAll('.promote-user').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const userId = btn.dataset.id;
-          const promoteRes = await apiFetch('/users/promote', {
-            method: 'POST',
-            body: JSON.stringify({ userId })
           });
-          if (promoteRes && promoteRes.ok) {
-            alert('User promoted to admin');
-            loadUsers();
-          } else {
-            alert('Promotion failed');
-          }
         });
-      });
-    } else {
-      console.error('Failed to load users');
+      }
     }
-  }
 
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
-      if (m === '&') return '&amp;';
-      if (m === '<') return '&lt;';
-      if (m === '>') return '&gt;';
-      return m;
-    });
-  }
+    async function loadUsers() {
+      const res = await apiFetch('/users/all');
+      if (res && res.ok) {
+        const users = await res.json();
+        const container = document.getElementById('usersList');
+        container.innerHTML = users.map(u => `
+          <div class="card">
+            <p><strong>${escapeHtml(u.full_name)}</strong> (@${escapeHtml(u.username)}) - ${u.role}</p>
+            ${u.role !== 'admin' ? `<button class="btn btn-success promote-user" data-id="${u.id}">Promote to Admin</button>` : ''}
+          </div>
+        `).join('');
+        document.querySelectorAll('.promote-user').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const userId = btn.dataset.id;
+            const promoteRes = await apiFetch('/users/promote', { method: 'POST', body: JSON.stringify({ userId }) });
+            if (promoteRes && promoteRes.ok) {
+              alert('Promoted!');
+              loadUsers();
+            } else alert('Failed');
+          });
+        });
+      }
+    }
 
-  loadAdminAnnouncements();
-  loadUsers();
-</script>
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    loadAdminAnnouncements();
+    loadUsers();
+  </script>
 </body>
 </html>
