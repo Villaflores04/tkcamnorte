@@ -5,6 +5,7 @@ export default async function handler(req, res) {
   const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
+  // GET: list announcements (newest first)
   if (req.method === 'GET') {
     const { category } = req.query;
     let query = supabase
@@ -14,8 +15,7 @@ export default async function handler(req, res) {
         created_by_user:users(full_name, username),
         attachments:announcement_attachments(file_url, file_name)
       `)
-      .order('is_pinned', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false }); // 👈 NEWEST FIRST
 
     if (category && category !== 'all') {
       query = query.eq('category', category);
@@ -26,8 +26,8 @@ export default async function handler(req, res) {
     return res.status(200).json(data);
   }
 
+  // POST: create announcement (admin only)
   if (req.method === 'POST') {
-    // Only admin can create
     if (user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
 
     const { title, content, category, deadlineDate, isPinned, attachments } = req.body;
@@ -51,7 +51,7 @@ export default async function handler(req, res) {
 
     if (insertError) return res.status(500).json({ error: insertError.message });
 
-    // Insert attachments if any (attachments is array of {fileUrl, fileName, fileSize})
+    // Insert attachments if any
     if (attachments && attachments.length) {
       const attachmentRows = attachments.map(a => ({
         announcement_id: announcement.id,
