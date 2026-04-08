@@ -4,7 +4,7 @@ import { supabase } from './_lib/supabase.js';
 
 export const config = {
   api: {
-    bodyParser: false, // required for file uploads
+    bodyParser: false,
   },
 };
 
@@ -16,18 +16,17 @@ export default async function handler(req, res) {
   const files = [];
 
   bb.on('file', (name, file, info) => {
-    const { filename, encoding, mimeType } = info;
+    const { filename, mimeType } = info;
     const chunks = [];
     file.on('data', (chunk) => chunks.push(chunk));
     file.on('end', async () => {
       const buffer = Buffer.concat(chunks);
-      // Determine bucket based on fieldname or query param
       const bucket = req.query.bucket || 'announcement-attachments';
       const fileExt = filename.split('.').pop();
       const uniqueName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const { data, error } = await supabase.storage
         .from(bucket)
-        .upload(uniqueName, buffer, { contentType: mimeType, upsert: false });
+        .upload(uniqueName, buffer, { contentType: mimeType });
       if (error) {
         files.push({ error: error.message });
       } else {
