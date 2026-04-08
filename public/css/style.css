@@ -2,15 +2,11 @@
 :root {
   --cyan: #00d4ff;
   --cyan-dark: #0099cc;
-  --cyan-light: #80eaff;
   --bg-dark: #0a0f1e;
   --bg-card: rgba(18, 25, 45, 0.85);
   --text-light: #f0f4fa;
   --text-muted: #b0c4de;
   --border: rgba(0, 212, 255, 0.2);
-  --shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-  --radius: 20px;
-  --transition: all 0.2s ease;
 }
 
 * {
@@ -20,51 +16,20 @@
 }
 
 body {
-  font-family: 'Inter', 'Poppins', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'Poppins', sans-serif;
   background: radial-gradient(circle at 10% 20%, #0a1a2e, var(--bg-dark));
   color: var(--text-light);
-  min-height: 100vh;
-  line-height: 1.5;
 }
 
-/* ===== TYPOGRAPHY ===== */
-h1, h2, h3 {
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-h1 {
-  font-size: 2rem;
-  margin-bottom: 1.5rem;
-  background: linear-gradient(135deg, #ffffff, var(--cyan));
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  display: inline-block;
-}
-
-h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
-  color: var(--cyan);
-}
-
-/* ===== CONTAINER ===== */
-.container {
-  max-width: 1300px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem;
-}
-
-/* ===== DESKTOP NAVIGATION (horizontal bar) ===== */
+/* ===== DESKTOP NAV (horizontal) ===== */
 .desktop-nav {
-  background: rgba(10, 15, 30, 0.8);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  padding: 0.8rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: rgba(10, 15, 30, 0.8);
+  backdrop-filter: blur(12px);
+  padding: 0.8rem 2rem;
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -86,10 +51,9 @@ h2 {
 }
 
 .nav-links-desktop a {
-  text-decoration: none;
   color: var(--text-light);
+  text-decoration: none;
   font-weight: 500;
-  transition: var(--transition);
   padding: 0.5rem 0;
 }
 
@@ -98,23 +62,24 @@ h2 {
   border-bottom: 2px solid var(--cyan);
 }
 
-/* ===== MOBILE NAVIGATION (hamburger + slide menu) ===== */
+/* ===== MOBILE HAMBURGER (hidden on desktop) ===== */
 .hamburger {
   display: none;
   position: fixed;
-  top: 1.2rem;
-  right: 1.2rem;
+  top: 1rem;
+  right: 1rem;
   z-index: 1100;
   background: var(--cyan);
   border: none;
-  font-size: 1.6rem;
-  padding: 0.5rem 0.9rem;
+  font-size: 1.8rem;
+  padding: 0.5rem 1rem;
   border-radius: 40px;
   cursor: pointer;
   color: #0a0f1e;
-  box-shadow: var(--shadow);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
+/* Mobile slide menu */
 .nav-links-mobile {
   position: fixed;
   top: 0;
@@ -128,7 +93,7 @@ h2 {
   display: flex;
   flex-direction: column;
   gap: 1.8rem;
-  transition: right 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+  transition: right 0.3s ease;
   z-index: 1050;
   list-style: none;
 }
@@ -142,18 +107,9 @@ h2 {
   text-decoration: none;
   font-size: 1.2rem;
   font-weight: 500;
-  padding: 0.5rem;
-  border-radius: 12px;
-  transition: var(--transition);
 }
 
-.nav-links-mobile a:hover {
-  background: var(--cyan);
-  color: #0a0f1e;
-  padding-left: 1rem;
-}
-
-/* ===== RESPONSIVE BREAKPOINT ===== */
+/* ===== RESPONSIVE: show hamburger only on mobile ===== */
 @media (max-width: 768px) {
   .desktop-nav {
     display: none;
@@ -164,26 +120,27 @@ h2 {
   .container {
     padding: 5rem 1rem 1.5rem;
   }
-  h1 {
-    font-size: 1.6rem;
-  }
 }
 
-/* ===== CARDS (glassmorphism) ===== */
+/* ===== CONTAINER & CARDS ===== */
+.container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
 .card {
   background: var(--bg-card);
   backdrop-filter: blur(12px);
-  border-radius: var(--radius);
+  border-radius: 20px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   border: 1px solid var(--border);
-  transition: var(--transition);
+  transition: 0.2s;
 }
 
 .card:hover {
-  transform: translateY(-3px);
   border-color: var(--cyan);
-  box-shadow: 0 12px 25px -8px rgba(0, 212, 255, 0.2);
 }
 
 /* ===== BUTTONS ===== */
@@ -194,14 +151,7 @@ h2 {
   border-radius: 40px;
   font-weight: 600;
   cursor: pointer;
-  transition: var(--transition);
   color: #0a0f1e;
-  font-size: 0.9rem;
-}
-
-.btn:hover {
-  transform: scale(1.02);
-  box-shadow: 0 0 12px var(--cyan);
 }
 
 .btn-danger {
@@ -222,60 +172,16 @@ input, textarea, select {
   background: rgba(255,255,255,0.08);
   border: 1px solid rgba(255,255,255,0.2);
   border-radius: 28px;
-  font-size: 0.95rem;
   color: var(--text-light);
-  transition: var(--transition);
 }
 
-input:focus, textarea:focus, select:focus {
-  outline: none;
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.3);
-}
-
-label {
-  font-weight: 500;
-  color: var(--cyan);
-  font-size: 0.85rem;
-}
-
-/* ===== ANNOUNCEMENTS ===== */
-.announcement {
-  border-left: 4px solid var(--cyan);
-}
-
+/* ===== OTHER ===== */
 .pinned {
   background: rgba(0, 212, 255, 0.12);
-  border-left-width: 6px;
 }
-
-/* ===== COMMENTS ===== */
 .comment {
   background: rgba(255,255,255,0.05);
   border-radius: 18px;
   padding: 0.8rem;
   margin-top: 0.8rem;
-}
-
-/* ===== PROFILE IMAGE ===== */
-.profile-img {
-  width: 100px;
-  height: 100px;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 3px solid var(--cyan);
-  box-shadow: 0 0 12px var(--cyan);
-}
-
-/* ===== FILTER DROPDOWN ===== */
-#categoryFilter {
-  width: auto;
-  display: inline-block;
-  margin-bottom: 1.5rem;
-  background: rgba(0,0,0,0.4);
-}
-
-/* ===== ADMIN PANEL ===== */
-.admin-section {
-  margin-bottom: 2rem;
 }
