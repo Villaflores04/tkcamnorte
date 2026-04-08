@@ -18,18 +18,12 @@ export default async function handler(req, res) {
 
   if (existing) return res.status(400).json({ error: 'Username already taken' });
 
-  // Determine role: first user becomes admin
-  const { count, error: countError } = await supabase
-    .from('users')
-    .select('*', { count: 'exact', head: true });
-
-  const role = count === 0 ? 'admin' : 'user';
-
+  // Always create as regular 'user' – promotion must be done manually in Supabase
   const password_hash = hashPassword(password);
 
   const { data: user, error: insertError } = await supabase
     .from('users')
-    .insert([{ full_name: fullName, username, password_hash, role }])
+    .insert([{ full_name: fullName, username, password_hash, role: 'user' }])
     .select()
     .single();
 
