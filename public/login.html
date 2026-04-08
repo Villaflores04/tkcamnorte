@@ -36,7 +36,6 @@
         const data = await res.json();
         setToken(data.token);
         setUser(data.user);
-        // Redirect based on role
         redirectBasedOnRole(data.user.role);
       } else {
         alert('Invalid username or password');
