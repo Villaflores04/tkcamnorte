@@ -8,109 +8,161 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <button class="hamburger" id="hamburger">☰</button>
-  <ul class="nav-links" id="navLinks"></ul>
-  <div class="container">
-    <h1>📢 Announcements</h1>
-    <select id="categoryFilter">
-      <option value="all">All Categories</option>
-      <option value="song_lineup">🎵 Song Line-up</option>
-      <option value="deadline">⏰ Deadline</option>
-      <option value="payment">💰 Payment</option>
-      <option value="project">📁 Project</option>
-      <option value="general">📌 General</option>
-    </select>
-    <div id="announcementsList"></div>
-  </div>
-  <script type="module">
-    import { getUser, apiFetch, initHamburger, updateNav, requireAuth } from '/js/common.js';
 
-    // Protect page: redirect to login if not authenticated
-    if (!requireAuth()) {
-      // requireAuth already redirects
-    } else {
-      initHamburger();
-      updateNav();
-      loadAnnouncements();
-    }
+<!-- DESKTOP NAVIGATION -->
+<nav class="desktop-nav" id="desktopNav">
+  <div class="logo">TK Cam Norte</div>
+  <ul class="nav-links-desktop" id="navLinksDesktop"></ul>
+</nav>
 
-    async function loadAnnouncements(category = 'all') {
-      const res = await apiFetch(`/announcements?category=${category}`);
-      if (res && res.ok) {
-        const data = await res.json();
-        renderAnnouncements(data);
-      }
-    }
+<!-- MOBILE HAMBURGER + SLIDE MENU -->
+<button class="hamburger" id="hamburger">☰</button>
+<ul class="nav-links-mobile" id="navLinksMobile"></ul>
 
-    function renderAnnouncements(announcements) {
-      const container = document.getElementById('announcementsList');
-      if (!container) return;
-      container.innerHTML = announcements.map(a => `
-        <div class="card announcement ${a.is_pinned ? 'pinned' : ''}" data-id="${a.id}">
-          <h3>${escapeHtml(a.title)} ${a.is_pinned ? '📌' : ''}</h3>
-          <p>${escapeHtml(a.content)}</p>
-          <small>Category: ${a.category} | Posted by ${a.created_by_user?.full_name || 'Unknown'} on ${new Date(a.created_at).toLocaleDateString()}</small>
-          ${a.deadline_date ? `<p><strong>⏰ Deadline:</strong> ${new Date(a.deadline_date).toLocaleDateString()}</p>` : ''}
-          <div class="attachments">
-            ${(a.attachments || []).map(att => `<a href="${att.file_url}" target="_blank" rel="noopener">📎 ${escapeHtml(att.file_name)}</a>`).join('')}
-          </div>
-          <div class="comments-section" data-id="${a.id}">
-            <h4>💬 Comments</h4>
-            <div class="comments-list"></div>
-            ${getUser() ? `<textarea class="comment-text" placeholder="Add a comment..."></textarea><button class="btn add-comment" data-id="${a.id}">Post Comment</button>` : '<p><a href="/login.html">Login</a> to comment</p>'}
-          </div>
-        </div>
-      `).join('');
-      announcements.forEach(a => loadComments(a.id));
-      document.querySelectorAll('.add-comment').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          const announcementId = btn.dataset.id;
-          const textarea = btn.previousElementSibling;
-          const text = textarea.value.trim();
-          if (!text) return;
-          const res = await apiFetch('/comments', {
-            method: 'POST',
-            body: JSON.stringify({ announcementId, text })
-          });
-          if (res && res.ok) {
-            textarea.value = '';
-            loadComments(announcementId);
-          } else {
-            alert('Failed to add comment');
-          }
-        });
-      });
-    }
+<div class="container">
+  <h1>📢 Announcements</h1>
+  <select id="categoryFilter">
+    <option value="all">All Categories</option>
+    <option value="song_lineup">🎵 Song Line-up</option>
+    <option value="deadline">⏰ Deadline</option>
+    <option value="payment">💰 Payment</option>
+    <option value="project">📁 Project</option>
+    <option value="general">📌 General</option>
+  </select>
+  <div id="announcementsList"></div>
+</div>
 
-    async function loadComments(announcementId) {
-      const res = await apiFetch(`/comments?announcementId=${announcementId}`);
-      if (res && res.ok) {
-        const comments = await res.json();
-        const container = document.querySelector(`.comments-section[data-id="${announcementId}"] .comments-list`);
-        if (container) {
-          container.innerHTML = comments.map(c => `
-            <div class="comment">
-              <strong>${escapeHtml(c.user.full_name)}</strong> <small>${new Date(c.created_at).toLocaleString()}</small>
-              <p>${escapeHtml(c.text)}</p>
-            </div>
-          `).join('');
-        }
-      }
-    }
+<script type="module">
+  import { getUser, apiFetch, initHamburger, updateNav, requireAuth } from '/js/common.js';
 
-    document.getElementById('categoryFilter')?.addEventListener('change', (e) => {
-      loadAnnouncements(e.target.value);
+  if (!requireAuth()) return;
+
+  // Initialize responsive navigation (both desktop & mobile)
+  function renderNav() {
+    const user = getUser();
+    const desktopNav = document.getElementById('navLinksDesktop');
+    const mobileNav = document.getElementById('navLinksMobile');
+    if (!desktopNav || !mobileNav) return;
+
+    const adminLink = user.role === 'admin' ? '<li><a href="/admin.html">Admin</a></li>' : '';
+    const desktopHtml = `
+      <li><a href="/">Home</a></li>
+      <li><a href="/profile.html">Profile</a></li>
+      ${adminLink}
+      <li><a href="#" id="logoutBtnDesktop">Logout</a></li>
+    `;
+    const mobileHtml = `
+      <li><a href="/">Home</a></li>
+      <li><a href="/profile.html">Profile</a></li>
+      ${adminLink}
+      <li><a href="#" id="logoutBtnMobile">Logout</a></li>
+    `;
+    desktopNav.innerHTML = desktopHtml;
+    mobileNav.innerHTML = mobileHtml;
+
+    document.getElementById('logoutBtnDesktop')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.clear();
+      window.location.href = '/login.html';
     });
+    document.getElementById('logoutBtnMobile')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.clear();
+      window.location.href = '/login.html';
+    });
+  }
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
-      });
+  renderNav();
+  initHamburger(); // only affects mobile
+
+  // Load announcements (same as before)
+  async function loadAnnouncements(category = 'all') {
+    const res = await apiFetch(`/announcements?category=${category}`);
+    if (res && res.ok) {
+      const data = await res.json();
+      renderAnnouncements(data);
     }
-  </script>
+  }
+
+  function renderAnnouncements(announcements) {
+    const container = document.getElementById('announcementsList');
+    if (!container) return;
+    container.innerHTML = announcements.map(a => `
+      <div class="card announcement ${a.is_pinned ? 'pinned' : ''}" data-id="${a.id}">
+        <h3>${escapeHtml(a.title)} ${a.is_pinned ? '📌' : ''}</h3>
+        <p>${escapeHtml(a.content)}</p>
+        <small>Category: ${a.category} | Posted by ${a.created_by_user?.full_name || 'Unknown'} on ${new Date(a.created_at).toLocaleDateString()}</small>
+        ${a.deadline_date ? `<p><strong>⏰ Deadline:</strong> ${new Date(a.deadline_date).toLocaleDateString()}</p>` : ''}
+        <div class="attachments">
+          ${(a.attachments || []).map(att => `<a href="${att.file_url}" target="_blank" rel="noopener">📎 ${escapeHtml(att.file_name)}</a>`).join('')}
+        </div>
+        <div class="comments-section" data-id="${a.id}">
+          <h4>💬 Comments</h4>
+          <div class="comments-list"></div>
+          ${getUser() ? `<textarea class="comment-text" placeholder="Add a comment..."></textarea><button class="btn add-comment" data-id="${a.id}">Post Comment</button>` : '<p><a href="/login.html">Login</a> to comment</p>'}
+        </div>
+      </div>
+    `).join('');
+    announcements.forEach(a => loadComments(a.id));
+    attachCommentEvents();
+  }
+
+  async function loadComments(announcementId) {
+    const res = await apiFetch(`/comments?announcementId=${announcementId}`);
+    if (res && res.ok) {
+      const comments = await res.json();
+      const container = document.querySelector(`.comments-section[data-id="${announcementId}"] .comments-list`);
+      if (container) {
+        container.innerHTML = comments.map(c => `
+          <div class="comment">
+            <strong>${escapeHtml(c.user.full_name)}</strong> <small>${new Date(c.created_at).toLocaleString()}</small>
+            <p>${escapeHtml(c.text)}</p>
+          </div>
+        `).join('');
+      }
+    }
+  }
+
+  function attachCommentEvents() {
+    document.querySelectorAll('.add-comment').forEach(btn => {
+      btn.removeEventListener('click', handleComment);
+      btn.addEventListener('click', handleComment);
+    });
+  }
+
+  async function handleComment(e) {
+    const btn = e.currentTarget;
+    const announcementId = btn.dataset.id;
+    const textarea = btn.previousElementSibling;
+    const text = textarea.value.trim();
+    if (!text) return;
+    const res = await apiFetch('/comments', {
+      method: 'POST',
+      body: JSON.stringify({ announcementId, text })
+    });
+    if (res && res.ok) {
+      textarea.value = '';
+      loadComments(announcementId);
+    } else {
+      alert('Failed to add comment');
+    }
+  }
+
+  document.getElementById('categoryFilter')?.addEventListener('change', (e) => {
+    loadAnnouncements(e.target.value);
+  });
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  loadAnnouncements();
+</script>
 </body>
 </html>
