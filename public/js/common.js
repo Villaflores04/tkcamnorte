@@ -49,14 +49,14 @@ export async function apiFetch(endpoint, options = {}) {
 
 export function initHamburger() {
   const hamburger = document.getElementById('hamburger');
-  const navLinks = document.getElementById('navLinks');
-  if (hamburger && navLinks) {
+  const mobileMenu = document.getElementById('navLinksMobile');
+  if (hamburger && mobileMenu) {
     hamburger.addEventListener('click', () => {
-      navLinks.classList.toggle('show');
+      mobileMenu.classList.toggle('show');
     });
     document.addEventListener('click', (e) => {
-      if (!navLinks.contains(e.target) && !hamburger.contains(e.target)) {
-        navLinks.classList.remove('show');
+      if (!mobileMenu.contains(e.target) && !hamburger.contains(e.target)) {
+        mobileMenu.classList.remove('show');
       }
     });
   }
