@@ -144,7 +144,7 @@
         btn.onclick = async () => {
           const id = btn.getAttribute('data-id');
           if (!confirm('Delete this announcement permanently?')) return;
-          const delRes = await apiFetch(`/announcements/${id}`, { method: 'DELETE' });
+          const delRes = await apiFetch(`/announcements/delete?id=${id}`, { method: 'DELETE' });
           if (delRes && delRes.ok) {
             alert('Deleted successfully');
             loadAdminAnnouncements(); // refresh list
