@@ -47,12 +47,19 @@ export async function apiFetch(endpoint, options = {}) {
   return response;
 }
 
+// Hamburger menu: right side, slide from right
 export function initHamburger() {
   const hamburger = document.getElementById('hamburger');
   const navLinks = document.getElementById('navLinks');
   if (hamburger && navLinks) {
     hamburger.addEventListener('click', () => {
       navLinks.classList.toggle('show');
+    });
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!navLinks.contains(e.target) && !hamburger.contains(e.target)) {
+        navLinks.classList.remove('show');
+      }
     });
   }
 }
@@ -81,5 +88,24 @@ export function updateNav() {
       <li><a href="/login.html">Login</a></li>
       <li><a href="/register.html">Register</a></li>
     `;
+  }
+}
+
+// Redirect to login if not authenticated (for protected pages)
+export function requireAuth() {
+  const user = getUser();
+  if (!user) {
+    window.location.href = '/login.html';
+    return false;
+  }
+  return true;
+}
+
+// Redirect based on role (for login)
+export function redirectBasedOnRole(role) {
+  if (role === 'admin') {
+    window.location.href = '/admin.html';
+  } else {
+    window.location.href = '/';
   }
 }
