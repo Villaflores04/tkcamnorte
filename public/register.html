@@ -2,54 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Register - TK Cam Norte</title>
+  <!-- Google Fonts (modern) -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Main CSS (cyan theme + glassmorphism) -->
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="container">
-    <button class="hamburger" id="hamburger">☰</button>
-    <ul class="nav-links" id="navLinks"></ul>
-    <div class="card" style="max-width: 400px; margin: 2rem auto;">
-      <h2>Register</h2>
+  <div class="container" style="max-width: 480px;">
+    <div class="card" style="text-align: center;">
+      <h2 style="margin-bottom: 1rem;">✨ Create Account</h2>
+      <p style="color: var(--text-muted); margin-bottom: 2rem;">Join TK Cam Norte announcements</p>
+      
       <form id="registerForm">
-        <input type="text" id="fullName" placeholder="Full Name" required>
-        <input type="text" id="username" placeholder="Username (no email, unique)" required>
+        <input type="text" id="fullName" placeholder="Full Name" required autocomplete="off">
+        <input type="text" id="username" placeholder="Username (unique, no email)" required autocomplete="off">
         <input type="password" id="password" placeholder="Password" required>
-        <button type="submit" class="btn">Register</button>
+        <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;">Register</button>
       </form>
-      <p>Already have an account? <a href="/login.html">Login</a></p>
+      
+      <p style="margin-top: 1.5rem;">
+        Already have an account? <a href="/login.html" style="color: var(--cyan); text-decoration: none;">Login →</a>
+      </p>
     </div>
   </div>
+
   <script type="module">
-    import { setToken, setUser, apiFetch, initHamburger, updateNav } from '/js/common.js';
+    import { setToken, setUser, apiFetch } from '/js/common.js';
 
-    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+    const form = document.getElementById('registerForm');
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const fullName = document.getElementById('fullName').value;
-      const username = document.getElementById('username').value;
+      
+      const fullName = document.getElementById('fullName').value.trim();
+      const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
-
+      
+      if (!fullName || !username || !password) {
+        alert('Please fill all fields');
+        return;
+      }
+      
       const res = await apiFetch('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ fullName, username, password })
       });
-
+      
       if (res && res.ok) {
         const data = await res.json();
         setToken(data.token);
         setUser(data.user);
-        alert('Registration successful!');
+        alert('Registration successful! You are now logged in as a regular member. An admin must promote you to access admin features.');
         window.location.href = '/';
       } else {
-        const err = await res.json();
-        alert(err.error || 'Registration failed');
+        const errorData = await res.json();
+        alert(errorData.error || 'Registration failed. Username might already exist.');
       }
     });
-
-    updateNav();
-    initHamburger();
   </script>
 </body>
 </html>
