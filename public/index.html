@@ -22,24 +22,35 @@
     </select>
     <div id="announcementsList"></div>
   </div>
-  <script type="module">
-    import { getUser, apiFetch, initHamburger, updateNav, requireAuth } from '/js/common.js';
 
-    if (!requireAuth()) return;
-    initHamburger();
-    updateNav();
-    loadAnnouncements();
+  <script type="module">
+    import { getUser, apiFetch, initHamburger, updateNav } from '/js/common.js';
+
+    // ---- CHECK AUTH (no return) ----
+    if (!getUser()) {
+      window.location.href = '/login.html';
+    } else {
+      initHamburger();
+      updateNav();
+      loadAnnouncements();
+    }
 
     async function loadAnnouncements(category = 'all') {
       const res = await apiFetch(`/announcements?category=${category}`);
       if (res && res.ok) {
         const data = await res.json();
         renderAnnouncements(data);
+      } else {
+        document.getElementById('announcementsList').innerHTML = '<div class="card">⚠️ Failed to load announcements.</div>';
       }
     }
 
     function renderAnnouncements(announcements) {
       const container = document.getElementById('announcementsList');
+      if (!announcements.length) {
+        container.innerHTML = '<div class="card">No announcements yet.</div>';
+        return;
+      }
       container.innerHTML = announcements.map(a => `
         <div class="card announcement ${a.is_pinned ? 'pinned' : ''}">
           <h3>${escapeHtml(a.title)} ${a.is_pinned ? '📌' : ''}</h3>
@@ -78,27 +89,23 @@
 
     function attachCommentEvents() {
       document.querySelectorAll('.add-comment').forEach(btn => {
-        btn.removeEventListener('click', handleComment);
-        btn.addEventListener('click', handleComment);
+        btn.onclick = async () => {
+          const announcementId = btn.dataset.id;
+          const textarea = btn.previousElementSibling;
+          const text = textarea.value.trim();
+          if (!text) return;
+          const res = await apiFetch('/comments', {
+            method: 'POST',
+            body: JSON.stringify({ announcementId, text })
+          });
+          if (res && res.ok) {
+            textarea.value = '';
+            loadComments(announcementId);
+          } else {
+            alert('Failed to add comment');
+          }
+        };
       });
-    }
-
-    async function handleComment(e) {
-      const btn = e.currentTarget;
-      const announcementId = btn.dataset.id;
-      const textarea = btn.previousElementSibling;
-      const text = textarea.value.trim();
-      if (!text) return;
-      const res = await apiFetch('/comments', {
-        method: 'POST',
-        body: JSON.stringify({ announcementId, text })
-      });
-      if (res && res.ok) {
-        textarea.value = '';
-        loadComments(announcementId);
-      } else {
-        alert('Failed to add comment');
-      }
     }
 
     document.getElementById('categoryFilter').addEventListener('change', (e) => {
