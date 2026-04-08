@@ -47,45 +47,57 @@ export async function apiFetch(endpoint, options = {}) {
   return response;
 }
 
+// Unified navigation render for both desktop and mobile
+export function renderNavigation() {
+  const user = getUser();
+  const desktopNav = document.getElementById('navLinksDesktop');
+  const mobileNav = document.getElementById('navLinksMobile');
+  
+  if (!desktopNav && !mobileNav) return;
+  
+  const adminLink = user && user.role === 'admin' ? '<li><a href="/admin.html">Admin</a></li>' : '';
+  const navHtml = `
+    <li><a href="/">Home</a></li>
+    <li><a href="/profile.html">Profile</a></li>
+    ${adminLink}
+    <li><a href="#" class="logout-btn">Logout</a></li>
+  `;
+  
+  if (desktopNav) desktopNav.innerHTML = navHtml;
+  if (mobileNav) mobileNav.innerHTML = navHtml;
+  
+  // Attach logout events
+  document.querySelectorAll('.logout-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearSession();
+      window.location.href = '/login.html';
+    });
+  });
+}
+
+// Mobile hamburger initialization
 export function initHamburger() {
   const hamburger = document.getElementById('hamburger');
   const mobileMenu = document.getElementById('navLinksMobile');
   if (hamburger && mobileMenu) {
-    hamburger.addEventListener('click', () => {
-      mobileMenu.classList.toggle('show');
+    // Remove any existing listener to avoid duplicates
+    const newHamburger = hamburger.cloneNode(true);
+    hamburger.parentNode.replaceChild(newHamburger, hamburger);
+    const newMobileMenu = mobileMenu.cloneNode(true);
+    mobileMenu.parentNode.replaceChild(newMobileMenu, mobileMenu);
+    
+    newHamburger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      newMobileMenu.classList.toggle('show');
     });
+    
+    // Close when clicking outside
     document.addEventListener('click', (e) => {
-      if (!mobileMenu.contains(e.target) && !hamburger.contains(e.target)) {
-        mobileMenu.classList.remove('show');
+      if (!newMobileMenu.contains(e.target) && !newHamburger.contains(e.target)) {
+        newMobileMenu.classList.remove('show');
       }
     });
-  }
-}
-
-export function updateNav() {
-  const user = getUser();
-  const nav = document.getElementById('navLinks');
-  if (!nav) return;
-  if (user) {
-    nav.innerHTML = `
-      <li><a href="/">Home</a></li>
-      <li><a href="/profile.html">Profile</a></li>
-      ${user.role === 'admin' ? '<li><a href="/admin.html">Admin</a></li>' : ''}
-      <li><a href="#" id="logoutBtn">Logout</a></li>
-    `;
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-      logoutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        clearSession();
-        window.location.href = '/login.html';
-      });
-    }
-  } else {
-    nav.innerHTML = `
-      <li><a href="/login.html">Login</a></li>
-      <li><a href="/register.html">Register</a></li>
-    `;
   }
 }
 
