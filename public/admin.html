@@ -53,7 +53,7 @@
 </div>
 
 <script type="module">
-  import { getUser, apiFetch, initHamburger, requireAuth } from '/js/common.js';
+  import { getUser, apiFetch, initHamburger, renderNavigation, requireAuth } from '/js/common.js';
 
   if (!requireAuth()) return;
   const user = getUser();
@@ -62,28 +62,7 @@
     window.location.href = '/';
   }
 
-  // Render navigation (same as index)
-  function renderNav() {
-    const desktopNav = document.getElementById('navLinksDesktop');
-    const mobileNav = document.getElementById('navLinksMobile');
-    if (!desktopNav || !mobileNav) return;
-    const html = `
-      <li><a href="/">Home</a></li>
-      <li><a href="/profile.html">Profile</a></li>
-      <li><a href="/admin.html">Admin</a></li>
-      <li><a href="#" id="logoutBtn">Logout</a></li>
-    `;
-    desktopNav.innerHTML = html;
-    mobileNav.innerHTML = html;
-    document.querySelectorAll('#logoutBtn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        localStorage.clear();
-        window.location.href = '/login.html';
-      });
-    });
-  }
-  renderNav();
+  renderNavigation();
   initHamburger();
 
   // File upload helper
@@ -117,7 +96,12 @@
 
     let attachments = [];
     if (files.length) {
-      attachments = await uploadFiles(files);
+      try {
+        attachments = await uploadFiles(files);
+      } catch (err) {
+        alert('File upload failed: ' + err.message);
+        return;
+      }
     }
 
     const payload = { title, content, category, deadlineDate, isPinned, attachments };
@@ -141,6 +125,10 @@
       const data = await res.json();
       const container = document.getElementById('adminAnnouncementsList');
       if (!container) return;
+      if (data.length === 0) {
+        container.innerHTML = '<div class="card">No announcements yet.</div>';
+        return;
+      }
       container.innerHTML = data.map(a => `
         <div class="card" data-id="${a.id}">
           <h3>${escapeHtml(a.title)} ${a.is_pinned ? '📌' : ''}</h3>
@@ -163,6 +151,9 @@
           }
         });
       });
+    } else {
+      console.error('Failed to load announcements');
+      document.getElementById('adminAnnouncementsList').innerHTML = '<div class="card">⚠️ Error loading announcements.</div>';
     }
   }
 
@@ -173,6 +164,10 @@
       const users = await res.json();
       const container = document.getElementById('usersList');
       if (!container) return;
+      if (users.length === 0) {
+        container.innerHTML = '<div class="card">No users found.</div>';
+        return;
+      }
       container.innerHTML = users.map(u => `
         <div class="card" style="margin-bottom: 0.8rem;">
           <p><strong>${escapeHtml(u.full_name)}</strong> (@${escapeHtml(u.username)}) - Role: ${u.role}</p>
@@ -194,6 +189,8 @@
           }
         });
       });
+    } else {
+      console.error('Failed to load users');
     }
   }
 
