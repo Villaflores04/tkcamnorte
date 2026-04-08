@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TK Cam Norte Announcements</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <button class="hamburger" id="hamburger">☰</button>
+    <ul class="nav-links" id="navLinks"></ul>
+    <h1>Announcements</h1>
+    <select id="categoryFilter">
+      <option value="all">All Categories</option>
+      <option value="song_lineup">Song Line-up</option>
+      <option value="deadline">Deadline</option>
+      <option value="payment">Payment</option>
+      <option value="project">Project</option>
+      <option value="general">General</option>
+    </select>
+    <div id="announcementsList"></div>
+  </div>
+  <script type="module">
+    import { getToken, getUser, apiFetch, initHamburger, updateNav } from '/js/common.js';
+    window.getToken = getToken;
+    window.getUser = getUser;
+    window.apiFetch = apiFetch;
+
+    async function loadAnnouncements(category = 'all') {
+      const res = await apiFetch(`/announcements?category=${category}`);
+      if (res && res.ok) {
+        const data = await res.json();
+        renderAnnouncements(data);
+      }
+    }
+
+    function renderAnnouncements(announcements) {
+      const container = document.getElementById('announcementsList');
+      container.innerHTML = announcements.map(a => `
+        <div class="card announcement ${a.is_pinned ? 'pinned' : ''}">
+          <h3>${a.title} ${a.is_pinned ? '📌' : ''}</h3>
+          <p>${a.content}</p>
+          <small>Category: ${a.category} | Posted by ${a.created_by_user?.full_name || 'Unknown'} on ${new Date(a.created_at).toLocaleDateString()}</small>
+          ${a.deadline_date ? `<p><strong>Deadline:</strong> ${new Date(a.deadline_date).toLocaleDateString()}</p>` : ''}
+          <div class="attachments">
+            ${(a.attachments || []).map(att => `<a href="${att.file_url}" target="_blank">📎 ${att.file_name}</a>`).join('')}
+          </div>
+          <div class="comments-section" data-id="${a.id}">
+            <h4>Comments</h4>
+            <div class="comments-list"></div>
+            ${getUser() ? `<textarea class="comment-text" placeholder="Add a comment..."></textarea><button class="btn add-comment" data-id="${a.id}">Comment</button>` : '<p>Login to comment</p>'}
+          </div>
+        </div>
+      `).join('');
+      // Load comments for each announcement
+      announcements.forEach(a => loadComments(a.id));
+      // Attach comment event listeners
+      document.querySelectorAll('.add-comment').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const announcementId = btn.dataset.id;
+          const textarea = btn.previousElementSibling;
+          const text = textarea.value.trim();
+          if (!text) return;
+          const res = await apiFetch('/comments', {
+            method: 'POST',
+            body: JSON.stringify({ announcementId, text })
+          });
+          if (res && res.ok) {
+            textarea.value = '';
+            loadComments(announcementId);
+          } else {
+            alert('Failed to add comment');
+          }
+        });
+      });
+    }
+
+    async function loadComments(announcementId) {
+      const res = await apiFetch(`/comments?announcementId=${announcementId}`);
+      if (res && res.ok) {
+        const comments = await res.json();
+        const container = document.querySelector(`.comments-section[data-id="${announcementId}"] .comments-list`);
+        if (container) {
+          container.innerHTML = comments.map(c => `
+            <div class="comment">
+              <strong>${c.user.full_name}</strong> <small>${new Date(c.created_at).toLocaleString()}</small>
+              <p>${c.text}</p>
+            </div>
+          `).join('');
+        }
+      }
+    }
+
+    document.getElementById('categoryFilter').addEventListener('change', (e) => {
+      loadAnnouncements(e.target.value);
+    });
+
+    updateNav();
+    initHamburger();
+    loadAnnouncements();
+  </script>
+</body>
+</html>
