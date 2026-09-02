@@ -1,126 +1,177 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fil">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TK Cam Norte Announcements</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Anunsyo · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <button class="hamburger" id="hamburger">☰</button>
-  <ul class="nav-links" id="navLinks"></ul>
-  <div class="container">
-    <h1>Announcements</h1>
-    <select id="categoryFilter">
-      <option value="all">All Categories</option>
-      <option value="song_lineup">Song Line-up</option>
-      <option value="deadline">Deadline</option>
-      <option value="payment">Payment</option>
-      <option value="project">Project</option>
-      <option value="general">General</option>
-    </select>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <div class="mark">TK</div>
+      <div class="brand-name">TK Cam Norte<small>Teatro Kristiano announcements</small></div>
+    </a>
+    <button class="hamburger" id="hamburger" type="button">☰</button>
+    <ul class="nav-links" id="navLinks"></ul>
+  </header>
+  <main class="container">
+    <div class="page-head">
+      <h1>Mga anunsyo</h1>
+      <p>Song line-up, deadline, ambag, at project ng chapter.</p>
+    </div>
+    <div class="chip-row" id="filters"></div>
     <div id="announcementsList"></div>
-  </div>
-
+  </main>
   <script type="module">
-    import { getUser, apiFetch, initHamburger, updateNav } from '/js/common.js';
+    import {
+      requireAuth, initShell, apiJson, escapeHtml, formatDate, deadlineMeta,
+      categoryLabel, CATEGORIES, renderReactions, bindReactions, isAdmin,
+      getUser, showToast
+    } from '/js/common.js';
 
-    // ---- CHECK AUTH (no return) ----
-    if (!getUser()) {
-      window.location.href = '/login.html';
-    } else {
-      initHamburger();
-      updateNav();
+    const user = await requireAuth();
+    if (!user) throw new Error('auth');
+    initShell(user);
+
+    let currentCategory = 'all';
+    const filters = document.getElementById('filters');
+    filters.innerHTML = CATEGORIES.map((c) =>
+      `<button class="chip ${c.id === 'all' ? 'active' : ''}" data-cat="${c.id}">${c.label}</button>`
+    ).join('');
+    filters.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-cat]');
+      if (!btn) return;
+      currentCategory = btn.dataset.cat;
+      filters.querySelectorAll('.chip').forEach((el) => el.classList.toggle('active', el === btn));
       loadAnnouncements();
-    }
+    });
 
-    async function loadAnnouncements(category = 'all') {
-      const res = await apiFetch(`/announcements?category=${category}`);
-      if (res && res.ok) {
-        const data = await res.json();
-        renderAnnouncements(data);
-      } else {
-        document.getElementById('announcementsList').innerHTML = '<div class="card">⚠️ Failed to load announcements.</div>';
-      }
-    }
-
-    function renderAnnouncements(announcements) {
-      const container = document.getElementById('announcementsList');
-      if (!announcements.length) {
-        container.innerHTML = '<div class="card">No announcements yet.</div>';
+    async function loadAnnouncements() {
+      const box = document.getElementById('announcementsList');
+      box.innerHTML = '<div class="card empty">Loading...</div>';
+      const qs = currentCategory !== 'all' ? `?category=${currentCategory}` : '';
+      const { ok, data, error } = await apiJson(`/announcements${qs}`);
+      if (!ok) {
+        box.innerHTML = `<div class="card empty">${escapeHtml(error)}</div>`;
         return;
       }
-      container.innerHTML = announcements.map(a => `
-        <div class="card announcement ${a.is_pinned ? 'pinned' : ''}">
-          <h3>${escapeHtml(a.title)} ${a.is_pinned ? '📌' : ''}</h3>
-          <p>${escapeHtml(a.content)}</p>
-          <small>Category: ${a.category} | Posted by ${a.created_by_user?.full_name || 'Unknown'} on ${new Date(a.created_at).toLocaleDateString()}</small>
-          ${a.deadline_date ? `<p><strong>Deadline:</strong> ${new Date(a.deadline_date).toLocaleDateString()}</p>` : ''}
+      if (!data.length) {
+        box.innerHTML = '<div class="card empty">Wala pang anunsyo sa category na ito.</div>';
+        return;
+      }
+      box.innerHTML = data.map(renderCard).join('');
+      bindReactions(box);
+      data.forEach((a) => loadComments(a.id));
+      bindCommentEvents(box);
+    }
+
+    function renderCard(a) {
+      const due = deadlineMeta(a.deadline_date);
+      const admin = isAdmin();
+      return `
+        <article class="card announcement cat-${escapeHtml(a.category)} ${a.is_pinned ? 'pinned' : ''}" data-post="${a.id}">
+          <div class="card-top">
+            <div>
+              <span class="chip">${escapeHtml(categoryLabel(a.category))}</span>
+              ${a.is_pinned ? '<span class="badge badge-pin">Pinned</span>' : ''}
+              ${due ? `<span class="badge badge-${due.tone}">${due.label}</span>` : ''}
+              <h3>${escapeHtml(a.title)}</h3>
+            </div>
+          </div>
+          <p class="body-text">${escapeHtml(a.content)}</p>
+          <p class="meta">Posted by ${escapeHtml(a.created_by_user?.full_name || 'Coordinator')} · ${formatDate(a.created_at, true)}</p>
           <div class="attachments">
-            ${(a.attachments || []).map(att => `<a href="${att.file_url}" target="_blank">📎 ${att.file_name}</a>`).join('')}
+            ${(a.attachments || []).map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">📎 ${escapeHtml(f.file_name || 'File')}</a>`).join('')}
           </div>
-          <div class="comments-section" data-id="${a.id}">
-            <h4>Comments</h4>
+          ${renderReactions(a)}
+          ${admin ? `<div class="btn-row"><a class="btn btn-ghost" href="/admin.html?edit=${a.id}">Edit</a></div>` : ''}
+          <section class="comments-section" data-id="${a.id}">
+            <h4>Mga komento</h4>
             <div class="comments-list"></div>
-            ${getUser() ? `<textarea class="comment-text" placeholder="Add a comment..."></textarea><button class="btn add-comment" data-id="${a.id}">Comment</button>` : '<p>Login to comment</p>'}
-          </div>
-        </div>
-      `).join('');
-      announcements.forEach(a => loadComments(a.id));
-      attachCommentEvents();
+            <div class="comment-composer">
+              <textarea class="comment-text" rows="2" maxlength="1000" placeholder="Magtanong o mag-reply..."></textarea>
+              <button class="btn add-comment" data-id="${a.id}" type="button">Comment</button>
+            </div>
+          </section>
+        </article>`;
     }
 
     async function loadComments(announcementId) {
-      const res = await apiFetch(`/comments?announcementId=${announcementId}`);
-      if (res && res.ok) {
-        const comments = await res.json();
-        const container = document.querySelector(`.comments-section[data-id="${announcementId}"] .comments-list`);
-        if (container) {
-          container.innerHTML = comments.map(c => `
-            <div class="comment">
-              <strong>${escapeHtml(c.user.full_name)}</strong> <small>${new Date(c.created_at).toLocaleString()}</small>
-              <p>${escapeHtml(c.text)}</p>
-            </div>
-          `).join('');
-        }
+      const { ok, data } = await apiJson(`/comments?announcementId=${announcementId}`);
+      const list = document.querySelector(`.comments-section[data-id="${announcementId}"] .comments-list`);
+      if (!list) return;
+      if (!ok) {
+        list.innerHTML = '<p class="meta">Hindi na-load ang comments.</p>';
+        return;
       }
+      if (!data.length) {
+        list.innerHTML = '<p class="meta">Unang magtanong.</p>';
+        return;
+      }
+      const me = getUser();
+      list.innerHTML = data.map((c) => {
+        const canManage = me && (me.id === c.user_id || me.role === 'admin');
+        return `
+          <div class="comment" data-comment="${c.id}">
+            <div class="comment-head">
+              <strong>${escapeHtml(c.user?.full_name || 'Member')}</strong>
+              <small>${formatDate(c.created_at, true)}</small>
+            </div>
+            <p class="comment-body">${escapeHtml(c.text)}</p>
+            ${canManage ? `<div class="comment-actions">
+              <button type="button" data-edit-comment="${c.id}">Edit</button>
+              <button type="button" data-del-comment="${c.id}">Delete</button>
+            </div>` : ''}
+          </div>`;
+      }).join('');
     }
 
-    function attachCommentEvents() {
-      document.querySelectorAll('.add-comment').forEach(btn => {
+    function bindCommentEvents(root) {
+      root.querySelectorAll('.add-comment').forEach((btn) => {
         btn.onclick = async () => {
-          const announcementId = btn.dataset.id;
-          const textarea = btn.previousElementSibling;
-          const text = textarea.value.trim();
+          const section = btn.closest('.comments-section');
+          const text = section.querySelector('.comment-text').value.trim();
           if (!text) return;
-          const res = await apiFetch('/comments', {
+          btn.disabled = true;
+          const { ok, error } = await apiJson('/comments', {
             method: 'POST',
-            body: JSON.stringify({ announcementId, text })
+            body: JSON.stringify({ announcementId: btn.dataset.id, text })
           });
-          if (res && res.ok) {
-            textarea.value = '';
-            loadComments(announcementId);
-          } else {
-            alert('Failed to add comment');
-          }
+          btn.disabled = false;
+          if (!ok) return showToast(error, 'error');
+          section.querySelector('.comment-text').value = '';
+          loadComments(btn.dataset.id);
         };
       });
-    }
 
-    document.getElementById('categoryFilter').addEventListener('change', (e) => {
-      loadAnnouncements(e.target.value);
-    });
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
+      root.addEventListener('click', async (e) => {
+        const del = e.target.closest('[data-del-comment]');
+        const edit = e.target.closest('[data-edit-comment]');
+        if (del) {
+          if (!confirm('Delete this comment?')) return;
+          const id = del.dataset.delComment;
+          const section = del.closest('.comments-section');
+          const { ok, error } = await apiJson(`/comments?commentId=${id}`, { method: 'DELETE' });
+          if (!ok) return showToast(error, 'error');
+          loadComments(section.dataset.id);
+        }
+        if (edit) {
+          const wrap = edit.closest('.comment');
+          const current = wrap.querySelector('.comment-body').textContent;
+          const next = prompt('Edit comment', current);
+          if (next == null || !next.trim()) return;
+          const { ok, error } = await apiJson('/comments', {
+            method: 'PUT',
+            body: JSON.stringify({ commentId: edit.dataset.editComment, text: next.trim() })
+          });
+          if (!ok) return showToast(error, 'error');
+          loadComments(edit.closest('.comments-section').dataset.id);
+        }
       });
     }
+
+    loadAnnouncements();
   </script>
 </body>
 </html>
