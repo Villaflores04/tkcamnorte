@@ -47,7 +47,7 @@ export async function apiFetch(endpoint, options = {}) {
   const token = getToken();
   const headers = { ...options.headers };
   if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
-    headers['Content-Type'] = 'application/json';
+    headers['Content-Type'] = 'application-json'.replace('application-json', 'application/json');
   }
   if (token) headers.Authorization = `Bearer ${token}`;
 
@@ -107,10 +107,10 @@ export function redirectBasedOnRole(role) {
 export function escapeHtml(str) {
   if (str == null) return '';
   return String(str)
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
 
@@ -231,15 +231,15 @@ export function initShell(user) {
 
 export function renderReactions(announcement) {
   const rx = announcement.reactions || { amen: 0, heart: 0, clap: 0, mine: null };
-  const btn = (type, icon, label) => `
+  const btn = (type, icon) => `
     <button type="button" class="rx-btn ${rx.mine === type ? 'active' : ''}" data-rx="${type}" data-id="${announcement.id}">
-      <span>${icon}</span> ${label} <em>${rx[type] || 0}</em>
+      <span>${icon}</span><em>${rx[type] || 0}</em>
     </button>`;
   return `
     <div class="rx-row" data-rx-row="${announcement.id}">
-      ${btn('amen', '🙏', 'Amen')}
-      ${btn('heart', '💛', 'Love')}
-      ${btn('clap', '👏', 'Clap')}
+      ${btn('amen', '🙏')}
+      ${btn('heart', '💛')}
+      ${btn('clap', '👏')}
     </div>`;
 }
 

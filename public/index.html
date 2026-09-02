@@ -69,6 +69,7 @@
     function renderCard(a) {
       const due = deadlineMeta(a.deadline_date);
       const admin = isAdmin();
+      const files = a.attachments || [];
       return `
         <article class="card announcement cat-${escapeHtml(a.category)} ${a.is_pinned ? 'pinned' : ''}" data-post="${a.id}">
           <div class="tag-row">
@@ -79,17 +80,15 @@
           <h3>${escapeHtml(a.title)}</h3>
           <p class="body-text">${escapeHtml(a.content)}</p>
           <p class="meta">${escapeHtml(a.created_by_user?.full_name || 'Coordinator')} · ${formatDate(a.created_at, true)}</p>
-          <div class="attachments">
-            ${(a.attachments || []).map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${escapeHtml(f.file_name || 'File')}</a>`).join('')}
-          </div>
+          ${files.length ? `<div class="attachments">${files.map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${escapeHtml(f.file_name || 'File')}</a>`).join('')}</div>` : ''}
           ${renderReactions(a)}
-          ${admin ? `<div class="btn-row"><a class="btn btn-ghost" href="/admin.html?edit=${a.id}">Edit</a></div>` : ''}
+          ${admin ? `<div class="btn-row single"><a class="btn btn-ghost" href="/admin.html?edit=${a.id}">Edit</a></div>` : ''}
           <section class="comments-section" data-id="${a.id}">
             <h4>Mga komento</h4>
             <div class="comments-list"></div>
             <div class="comment-composer">
-              <textarea class="comment-text" rows="2" maxlength="1000" placeholder="Magtanong o mag-reply..."></textarea>
-              <button class="btn add-comment" data-id="${a.id}" type="button">Comment</button>
+              <textarea class="comment-text" rows="1" maxlength="1000" placeholder="Magtanong o mag-reply..."></textarea>
+              <button class="btn add-comment" data-id="${a.id}" type="button">Send</button>
             </div>
           </section>
         </article>`;
