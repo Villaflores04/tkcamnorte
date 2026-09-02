@@ -2,7 +2,7 @@
 <html lang="fil">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Coordinator · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -12,7 +12,7 @@
       <div class="mark">TK</div>
       <div class="brand-name">Coordinator desk<small>Create, edit, delete, members</small></div>
     </a>
-    <button class="hamburger" id="hamburger" type="button">☰</button>
+    <button class="hamburger" id="hamburger" type="button" aria-label="Menu">☰</button>
     <ul class="nav-links" id="navLinks"></ul>
   </header>
   <main class="container">
@@ -29,23 +29,33 @@
       <h2 id="composeTitle">Bagong anunsyo</h2>
       <form id="announcementForm">
         <input type="hidden" id="editId">
-        <label for="title">Title</label>
-        <input id="title" required>
-        <label for="content">Content</label>
-        <textarea id="content" rows="6" required></textarea>
-        <label for="category">Category</label>
-        <select id="category">
-          <option value="song_lineup">Song line-up</option>
-          <option value="deadline">Deadline</option>
-          <option value="payment">Ambag / Payment</option>
-          <option value="project">Project</option>
-          <option value="general">General</option>
-        </select>
-        <label for="deadlineDate">Deadline (optional)</label>
-        <input id="deadlineDate" type="date">
-        <label><input type="checkbox" id="isPinned"> I-pin sa taas</label>
-        <label for="attachments">Attachments</label>
-        <input id="attachments" type="file" multiple>
+        <div class="field">
+          <label for="title">Title</label>
+          <input id="title" required>
+        </div>
+        <div class="field">
+          <label for="content">Content</label>
+          <textarea id="content" rows="6" required></textarea>
+        </div>
+        <div class="field">
+          <label for="category">Category</label>
+          <select id="category">
+            <option value="song_lineup">Song line-up</option>
+            <option value="deadline">Deadline</option>
+            <option value="payment">Ambag / Payment</option>
+            <option value="project">Project</option>
+            <option value="general">General</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="deadlineDate">Deadline (optional)</label>
+          <input id="deadlineDate" type="date">
+        </div>
+        <label class="check-row"><input type="checkbox" id="isPinned"> I-pin sa taas</label>
+        <div class="field">
+          <label for="attachments">Attachments</label>
+          <input id="attachments" type="file" multiple>
+        </div>
         <p class="meta" id="existingFiles"></p>
         <p class="form-error" id="formError" hidden></p>
         <div class="btn-row">

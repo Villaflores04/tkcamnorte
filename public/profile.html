@@ -2,7 +2,7 @@
 <html lang="fil">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Profile · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -12,7 +12,7 @@
       <div class="mark">TK</div>
       <div class="brand-name">TK Cam Norte<small>Profile</small></div>
     </a>
-    <button class="hamburger" id="hamburger" type="button">☰</button>
+    <button class="hamburger" id="hamburger" type="button" aria-label="Menu">☰</button>
     <ul class="nav-links" id="navLinks"></ul>
   </header>
   <main class="container">
@@ -20,21 +20,29 @@
       <h1>My profile</h1>
       <p>Pangalan, larawan, at password.</p>
     </div>
-    <section class="card">
-      <img id="profileImage" class="profile-photo" alt="Profile">
-      <p><strong id="displayFullName"></strong></p>
-      <p class="meta">@<span id="displayUsername"></span> · <span id="displayRole"></span></p>
-      <label>Bagong larawan</label>
-      <input type="file" id="profileImageUpload" accept="image/*">
-      <div class="btn-row">
+    <section class="card profile-card">
+      <div class="profile-hero">
+        <img id="profileImage" class="profile-photo" alt="Profile">
+        <div class="profile-id">
+          <h2 id="displayFullName"></h2>
+          <p class="meta">@<span id="displayUsername"></span> · <span id="displayRole"></span></p>
+        </div>
+      </div>
+      <div class="field">
+        <label for="profileImageUpload">Bagong larawan</label>
+        <input type="file" id="profileImageUpload" accept="image/*">
+      </div>
+      <div class="btn-row single">
         <button class="btn" id="uploadProfileImageBtn" type="button">Upload photo</button>
       </div>
     </section>
     <section class="card">
       <h2>Palitan ang pangalan</h2>
       <form id="updateProfileForm">
-        <label for="editFullName">Buong pangalan</label>
-        <input id="editFullName" required>
+        <div class="field">
+          <label for="editFullName">Buong pangalan</label>
+          <input id="editFullName" required>
+        </div>
         <p class="form-error" id="nameError" hidden></p>
         <button class="btn btn-yellow" type="submit">Save name</button>
       </form>
@@ -42,10 +50,14 @@
     <section class="card">
       <h2>Palitan ang password</h2>
       <form id="changePasswordForm">
-        <label for="oldPassword">Lumang password</label>
-        <input id="oldPassword" type="password" required>
-        <label for="newPassword">Bagong password</label>
-        <input id="newPassword" type="password" minlength="8" required>
+        <div class="field">
+          <label for="oldPassword">Lumang password</label>
+          <input id="oldPassword" type="password" required>
+        </div>
+        <div class="field">
+          <label for="newPassword">Bagong password</label>
+          <input id="newPassword" type="password" minlength="8" required>
+        </div>
         <p class="form-error" id="passError" hidden></p>
         <button class="btn" type="submit">Change password</button>
       </form>
@@ -70,7 +82,7 @@
       document.getElementById('displayRole').textContent = data.role === 'admin' ? 'Coordinator' : 'Member';
       document.getElementById('editFullName').value = data.fullName;
       const img = document.getElementById('profileImage');
-      img.src = data.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.fullName)}&background=1d4ed8&color=f5c518`;
+      img.src = data.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.fullName)}&background=0b1f4a&color=f5c518`;
     }
 
     document.getElementById('updateProfileForm').addEventListener('submit', async (e) => {

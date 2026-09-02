@@ -16,10 +16,23 @@
       <h1>Magrehistro</h1>
       <p class="lede">Regular member ang bagong account. Coordinator ang magpo-promote.</p>
       <form id="registerForm">
-        <div class="field"><label for="fullName">Buong pangalan</label><input id="fullName" required></div>
-        <div class="field"><label for="username">Username</label><input id="username" required><p class="meta" style="margin-top:6px">3–24 letters, numbers, dot o underscore.</p></div>
-        <div class="field"><label for="password">Password</label><input id="password" type="password" minlength="8" required></div>
-        <div class="field"><label for="confirm">Ulitin ang password</label><input id="confirm" type="password" minlength="8" required></div>
+        <div class="field">
+          <label for="fullName">Buong pangalan</label>
+          <input id="fullName" required>
+        </div>
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" required>
+          <p class="meta" style="margin-top:6px">3–24 letters, numbers, dot o underscore.</p>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" minlength="8" required>
+        </div>
+        <div class="field">
+          <label for="confirm">Ulitin ang password</label>
+          <input id="confirm" type="password" minlength="8" required>
+        </div>
         <p class="form-error" id="formError" hidden></p>
         <button class="btn btn-yellow" type="submit" id="submitBtn">Create account</button>
       </form>
