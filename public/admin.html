@@ -1,205 +1,191 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fil">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - TK Cam Norte</title>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>Coordinator · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <button class="hamburger" id="hamburger">☰</button>
-  <ul class="nav-links" id="navLinks"></ul>
-  <div class="container">
-    <h1>Admin Panel</h1>
-    
-    <!-- Create Announcement Form -->
-    <div class="card">
-      <h2>Create Announcement</h2>
-      <form id="createAnnouncementForm">
-        <input type="text" id="title" placeholder="Title" required>
-        <textarea id="content" rows="4" placeholder="Content" required></textarea>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <div class="mark">TK</div>
+      <div class="brand-name">Coordinator desk<small>Create, edit, delete, members</small></div>
+    </a>
+    <button class="hamburger" id="hamburger" type="button">☰</button>
+    <ul class="nav-links" id="navLinks"></ul>
+  </header>
+  <main class="container">
+    <div class="page-head">
+      <h1>Coordinator</h1>
+      <p>CRUD para sa anunsyo at roles ng members.</p>
+    </div>
+    <div class="tabs">
+      <button type="button" class="active" data-tab="compose">Compose</button>
+      <button type="button" data-tab="posts">Anunsyo</button>
+      <button type="button" data-tab="members">Members</button>
+    </div>
+    <section class="card panel" id="panel-compose">
+      <h2 id="composeTitle">Bagong anunsyo</h2>
+      <form id="announcementForm">
+        <input type="hidden" id="editId">
+        <label for="title">Title</label>
+        <input id="title" required>
+        <label for="content">Content</label>
+        <textarea id="content" rows="6" required></textarea>
+        <label for="category">Category</label>
         <select id="category">
-          <option value="song_lineup">Song Line-up</option>
+          <option value="song_lineup">Song line-up</option>
           <option value="deadline">Deadline</option>
-          <option value="payment">Payment</option>
+          <option value="payment">Ambag / Payment</option>
           <option value="project">Project</option>
           <option value="general">General</option>
         </select>
-        <label>Deadline (optional)</label>
-        <input type="date" id="deadlineDate">
-        <label><input type="checkbox" id="isPinned"> Pin this announcement</label>
-        <label>Attachments (images/files)</label>
-        <input type="file" id="attachments" multiple>
-        <button type="submit" class="btn">Publish Announcement</button>
+        <label for="deadlineDate">Deadline (optional)</label>
+        <input id="deadlineDate" type="date">
+        <label><input type="checkbox" id="isPinned"> I-pin sa taas</label>
+        <label for="attachments">Attachments</label>
+        <input id="attachments" type="file" multiple>
+        <p class="meta" id="existingFiles"></p>
+        <p class="form-error" id="formError" hidden></p>
+        <div class="btn-row">
+          <button class="btn btn-yellow" type="submit" id="saveBtn">Publish</button>
+          <button class="btn btn-ghost" type="button" id="resetBtn">Clear</button>
+        </div>
       </form>
-    </div>
-
-    <!-- Manage Users -->
-    <div class="card">
-      <h2>Manage Users</h2>
-      <div id="usersList"></div>
-    </div>
-
-    <!-- Existing Announcements (with delete) -->
-    <div class="card">
-      <h2>Existing Announcements</h2>
+    </section>
+    <section class="panel" id="panel-posts" hidden>
       <div id="adminAnnouncementsList"></div>
-    </div>
-  </div>
-
+    </section>
+    <section class="panel" id="panel-members" hidden>
+      <div id="usersList"></div>
+    </section>
+  </main>
   <script type="module">
-    import { getUser, apiFetch, initHamburger, updateNav } from '/js/common.js';
+    import {
+      requireAuth, initShell, apiJson, uploadFiles, escapeHtml, formatDate,
+      categoryLabel, showToast, setFormError, deadlineMeta
+    } from '/js/common.js';
 
-    // ---- AUTH CHECK ----
-    if (!getUser()) {
-      window.location.href = '/login.html';
-    } else {
-      const user = getUser();
-      if (user.role !== 'admin') {
-        alert('Access denied. Admins only.');
-        window.location.href = '/';
-      } else {
-        initHamburger();
-        updateNav();
-        loadAdminAnnouncements();
-        loadUsers();
-      }
-    }
+    const user = await requireAuth('admin');
+    if (!user) throw new Error('auth');
+    initShell(user);
 
-    // ---- FILE UPLOAD HELPER ----
-    async function uploadFiles(files) {
-      const token = localStorage.getItem('token');
-      const formData = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        formData.append('files', files[i]);
-      }
-      const res = await fetch('/api/upload?bucket=announcement-attachments', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      if (res.ok) {
-        const result = await res.json();
-        return result.files;
-      }
-      throw new Error('Upload failed');
-    }
-
-    // ---- CREATE ANNOUNCEMENT ----
-    document.getElementById('createAnnouncementForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const title = document.getElementById('title').value;
-      const content = document.getElementById('content').value;
-      const category = document.getElementById('category').value;
-      const deadlineDate = document.getElementById('deadlineDate').value || null;
-      const isPinned = document.getElementById('isPinned').checked;
-      const files = document.getElementById('attachments').files;
-      let attachments = [];
-      if (files.length) {
-        try {
-          attachments = await uploadFiles(files);
-        } catch (err) {
-          alert('File upload failed: ' + err.message);
-          return;
-        }
-      }
-      const payload = { title, content, category, deadlineDate, isPinned, attachments };
-      const res = await apiFetch('/announcements', { method: 'POST', body: JSON.stringify(payload) });
-      if (res && res.ok) {
-        alert('Announcement created!');
-        document.getElementById('createAnnouncementForm').reset();
-        loadAdminAnnouncements();
-      } else {
-        alert('Failed to create announcement');
-      }
+    const params = new URLSearchParams(location.search);
+    document.querySelectorAll('.tabs button').forEach((btn) => {
+      btn.onclick = () => {
+        document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.panel').forEach((p) => { p.hidden = p.id !== `panel-${btn.dataset.tab}`; });
+        if (btn.dataset.tab === 'posts') loadPosts();
+        if (btn.dataset.tab === 'members') loadUsers();
+      };
     });
 
-    // ---- LOAD ANNOUNCEMENTS FOR ADMIN (with delete) ----
-    async function loadAdminAnnouncements() {
-      const res = await apiFetch('/announcements');
-      const container = document.getElementById('adminAnnouncementsList');
-      if (!res) return;
-      if (!res.ok) {
-        container.innerHTML = `<div class="card">❌ Error ${res.status}: ${await res.text()}</div>`;
-        return;
-      }
-      const data = await res.json();
-      if (data.length === 0) {
-        container.innerHTML = '<div class="card">No announcements yet.</div>';
-        return;
-      }
-      container.innerHTML = data.map(a => `
-        <div class="card">
-          <h3>${escapeHtml(a.title)} ${a.is_pinned ? '📌' : ''}</h3>
-          <p>${escapeHtml(a.content.substring(0, 100))}...</p>
-          <small>Category: ${a.category} | Posted: ${new Date(a.created_at).toLocaleString()}</small>
-          <br><br>
-          <button class="btn btn-danger delete-announcement" data-id="${a.id}">Delete</button>
-        </div>
-      `).join('');
+    function resetForm() {
+      document.getElementById('announcementForm').reset();
+      document.getElementById('editId').value = '';
+      document.getElementById('composeTitle').textContent = 'Bagong anunsyo';
+      document.getElementById('saveBtn').textContent = 'Publish';
+      document.getElementById('existingFiles').textContent = '';
+      setFormError('formError', '');
+    }
+    document.getElementById('resetBtn').onclick = resetForm;
 
-      // Attach delete handlers
-      document.querySelectorAll('.delete-announcement').forEach(btn => {
+    async function loadOne(id) {
+      const { ok, data, error } = await apiJson(`/announcements?id=${id}`);
+      if (!ok) return showToast(error, 'error');
+      document.getElementById('editId').value = data.id;
+      document.getElementById('title').value = data.title;
+      document.getElementById('content').value = data.content;
+      document.getElementById('category').value = data.category;
+      document.getElementById('deadlineDate').value = data.deadline_date || '';
+      document.getElementById('isPinned').checked = Boolean(data.is_pinned);
+      document.getElementById('composeTitle').textContent = 'Edit announcement';
+      document.getElementById('saveBtn').textContent = 'Save changes';
+      document.getElementById('existingFiles').textContent = (data.attachments || []).length
+        ? `Current files: ${(data.attachments || []).map((f) => f.file_name).join(', ')}. New upload replaces them.`
+        : 'Walang existing file.';
+    }
+    if (params.get('edit')) loadOne(params.get('edit'));
+
+    document.getElementById('announcementForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const editId = document.getElementById('editId').value;
+      const files = document.getElementById('attachments').files;
+      let attachments;
+      if (files.length) {
+        try { attachments = await uploadFiles(files, 'announcement-attachments'); }
+        catch (err) { return setFormError('formError', err.message); }
+      }
+      const payload = {
+        title: document.getElementById('title').value.trim(),
+        content: document.getElementById('content').value.trim(),
+        category: document.getElementById('category').value,
+        deadlineDate: document.getElementById('deadlineDate').value || null,
+        isPinned: document.getElementById('isPinned').checked
+      };
+      if (attachments) payload.attachments = attachments;
+      const { ok, error } = editId
+        ? await apiJson(`/announcements/${editId}`, { method: 'PUT', body: JSON.stringify(payload) })
+        : await apiJson('/announcements', { method: 'POST', body: JSON.stringify(payload) });
+      if (!ok) return setFormError('formError', error);
+      showToast(editId ? 'Na-update ang anunsyo.' : 'Published.', 'success');
+      resetForm();
+      history.replaceState({}, '', '/admin.html');
+    });
+
+    async function loadPosts() {
+      const box = document.getElementById('adminAnnouncementsList');
+      const { ok, data, error } = await apiJson('/announcements');
+      if (!ok) { box.innerHTML = `<div class="card">${escapeHtml(error)}</div>`; return; }
+      if (!data.length) { box.innerHTML = '<div class="card empty">Wala pang anunsyo.</div>'; return; }
+      box.innerHTML = data.map((a) => {
+        const due = deadlineMeta(a.deadline_date);
+        return `<article class="card admin-item"><div><strong>${escapeHtml(a.title)}</strong><p class="meta">${escapeHtml(categoryLabel(a.category))} · ${formatDate(a.created_at, true)} ${due ? '· ' + due.label : ''}</p></div><div class="btn-row"><button class="btn btn-ghost" data-edit="${a.id}">Edit</button><button class="btn btn-danger" data-del="${a.id}">Delete</button></div></article>`;
+      }).join('');
+      box.querySelectorAll('[data-edit]').forEach((btn) => {
+        btn.onclick = () => { document.querySelector('[data-tab="compose"]').click(); loadOne(btn.dataset.edit); };
+      });
+      box.querySelectorAll('[data-del]').forEach((btn) => {
         btn.onclick = async () => {
-          const id = btn.getAttribute('data-id');
           if (!confirm('Delete this announcement permanently?')) return;
-          const delRes = await apiFetch(`/announcements/delete?id=${id}`, { method: 'DELETE' });
-          if (delRes && delRes.ok) {
-            alert('Deleted successfully');
-            loadAdminAnnouncements(); // refresh list
-          } else {
-            const errorText = await delRes?.text();
-            alert('Delete failed: ' + (errorText || 'Unknown error'));
+          const { ok, error } = await apiJson(`/announcements/${btn.dataset.del}`, { method: 'DELETE' });
+          if (!ok) {
+            const fallback = await apiJson(`/announcements/delete?id=${btn.dataset.del}`, { method: 'DELETE' });
+            if (!fallback.ok) return showToast(error || fallback.error, 'error');
           }
+          showToast('Deleted.', 'success');
+          loadPosts();
         };
       });
     }
 
-    // ---- LOAD USERS (with promote to admin) ----
     async function loadUsers() {
-      const res = await apiFetch('/users/all');
-      const container = document.getElementById('usersList');
-      if (!res) return;
-      if (!res.ok) {
-        container.innerHTML = `<div class="card">❌ Error ${res.status}: ${await res.text()}</div>`;
-        return;
-      }
-      const users = await res.json();
-      if (users.length === 0) {
-        container.innerHTML = '<div class="card">No users found.</div>';
-        return;
-      }
-      container.innerHTML = users.map(u => `
-        <div class="card">
-          <p><strong>${escapeHtml(u.full_name)}</strong> (@${escapeHtml(u.username)}) - Role: ${u.role}</p>
-          ${u.role !== 'admin' ? `<button class="btn btn-success promote-user" data-id="${u.id}">Promote to Admin</button>` : '<span>✅ Admin</span>'}
-        </div>
-      `).join('');
-
-      // Attach promote handlers
-      document.querySelectorAll('.promote-user').forEach(btn => {
+      const box = document.getElementById('usersList');
+      const { ok, data, error } = await apiJson('/users/all');
+      if (!ok) { box.innerHTML = `<div class="card">${escapeHtml(error)}</div>`; return; }
+      box.innerHTML = data.map((u) => `
+        <article class="card user-row">
+          <div>
+            <strong>${escapeHtml(u.full_name)}</strong>
+            <p class="meta">@${escapeHtml(u.username)} · ${u.role === 'admin' ? 'Coordinator' : 'Member'}</p>
+          </div>
+          ${u.role === 'admin'
+            ? `<button class="btn btn-ghost" data-role="user" data-id="${u.id}">Demote</button>`
+            : `<button class="btn btn-success" data-role="admin" data-id="${u.id}">Promote</button>`}
+        </article>`).join('');
+      box.querySelectorAll('[data-role]').forEach((btn) => {
         btn.onclick = async () => {
-          const userId = btn.getAttribute('data-id');
-          const promoteRes = await apiFetch('/users/promote', { method: 'POST', body: JSON.stringify({ userId }) });
-          if (promoteRes && promoteRes.ok) {
-            alert('User promoted to admin');
-            loadUsers(); // refresh list
-          } else {
-            alert('Promotion failed');
-          }
+          const next = btn.dataset.role;
+          if (!confirm(next === 'admin' ? 'Promote to coordinator?' : 'Demote to member? They must login again.')) return;
+          const { ok, error } = await apiJson('/users/promote', {
+            method: 'POST',
+            body: JSON.stringify({ userId: btn.dataset.id, role: next })
+          });
+          if (!ok) return showToast(error, 'error');
+          showToast('Role updated. Mag-login ulit ang member.', 'success');
+          loadUsers();
         };
-      });
-    }
-
-    // ---- HELPER: escape HTML to prevent XSS ----
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/[&<>]/g, function(m) {
-        if (m === '&') return '&amp;';
-        if (m === '<') return '&lt;';
-        if (m === '>') return '&gt;';
-        return m;
       });
     }
   </script>
