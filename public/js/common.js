@@ -107,10 +107,10 @@ export function redirectBasedOnRole(role) {
 export function escapeHtml(str) {
   if (str == null) return '';
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"')
     .replace(/'/g, '&#39;');
 }
 
@@ -183,13 +183,26 @@ export async function uploadFiles(fileList, bucket) {
 export function initShell(user) {
   const hamburger = document.getElementById('hamburger');
   const navLinks = document.getElementById('navLinks');
+  let scrim = document.getElementById('navScrim');
+  if (!scrim) {
+    scrim = document.createElement('div');
+    scrim.id = 'navScrim';
+    scrim.className = 'nav-scrim';
+    document.body.appendChild(scrim);
+  }
+  const closeNav = () => {
+    navLinks?.classList.remove('show');
+    scrim.classList.remove('show');
+  };
+  const openNav = () => {
+    navLinks?.classList.add('show');
+    scrim.classList.add('show');
+  };
   if (hamburger && navLinks) {
-    hamburger.addEventListener('click', () => navLinks.classList.toggle('show'));
-    document.addEventListener('click', (e) => {
-      if (!navLinks.contains(e.target) && !hamburger.contains(e.target)) {
-        navLinks.classList.remove('show');
-      }
+    hamburger.addEventListener('click', () => {
+      navLinks.classList.contains('show') ? closeNav() : openNav();
     });
+    scrim.addEventListener('click', closeNav);
   }
   if (!navLinks) return;
   if (user) {
