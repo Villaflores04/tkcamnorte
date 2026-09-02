@@ -1,152 +1,125 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fil">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Profile - TK Cam Norte</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <title>Profile · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="container">
-    <button class="hamburger" id="hamburger">☰</button>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <div class="mark">TK</div>
+      <div class="brand-name">TK Cam Norte<small>Profile</small></div>
+    </a>
+    <button class="hamburger" id="hamburger" type="button">☰</button>
     <ul class="nav-links" id="navLinks"></ul>
-    <div class="card">
-      <h2>My Profile</h2>
-      <div id="profileInfo">
-        <p><strong>Full Name:</strong> <span id="displayFullName"></span></p>
-        <p><strong>Username:</strong> <span id="displayUsername"></span></p>
-        <p><strong>Role:</strong> <span id="displayRole"></span></p>
-        <div id="profileImageDiv">
-          <img id="profileImage" style="max-width: 150px; border-radius: 50%;" />
-          <br>
-          <input type="file" id="profileImageUpload" accept="image/*">
-          <button id="uploadProfileImageBtn" class="btn">Upload New Image</button>
-        </div>
-      </div>
-      <hr>
-      <h3>Edit Profile</h3>
-      <form id="updateProfileForm">
-        <label>Full Name</label>
-        <input type="text" id="editFullName" required>
-        <button type="submit" class="btn">Update Name</button>
-      </form>
-      <hr>
-      <h3>Change Password</h3>
-      <form id="changePasswordForm">
-        <input type="password" id="oldPassword" placeholder="Old Password" required>
-        <input type="password" id="newPassword" placeholder="New Password" required>
-        <button type="submit" class="btn">Change Password</button>
-      </form>
+  </header>
+  <main class="container">
+    <div class="page-head">
+      <h1>My profile</h1>
+      <p>Pangalan, larawan, at password.</p>
     </div>
-  </div>
+    <section class="card">
+      <img id="profileImage" class="profile-photo" alt="Profile">
+      <p><strong id="displayFullName"></strong></p>
+      <p class="meta">@<span id="displayUsername"></span> · <span id="displayRole"></span></p>
+      <label>Bagong larawan</label>
+      <input type="file" id="profileImageUpload" accept="image/*">
+      <div class="btn-row">
+        <button class="btn" id="uploadProfileImageBtn" type="button">Upload photo</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2>Palitan ang pangalan</h2>
+      <form id="updateProfileForm">
+        <label for="editFullName">Buong pangalan</label>
+        <input id="editFullName" required>
+        <p class="form-error" id="nameError" hidden></p>
+        <button class="btn btn-yellow" type="submit">Save name</button>
+      </form>
+    </section>
+    <section class="card">
+      <h2>Palitan ang password</h2>
+      <form id="changePasswordForm">
+        <label for="oldPassword">Lumang password</label>
+        <input id="oldPassword" type="password" required>
+        <label for="newPassword">Bagong password</label>
+        <input id="newPassword" type="password" minlength="8" required>
+        <p class="form-error" id="passError" hidden></p>
+        <button class="btn" type="submit">Change password</button>
+      </form>
+    </section>
+  </main>
   <script type="module">
-    import { getUser, getToken, apiFetch, initHamburger, updateNav } from '/js/common.js';
+    import {
+      requireAuth, initShell, apiJson, setUser, clearSession, uploadFiles,
+      showToast, setFormError
+    } from '/js/common.js';
 
-    let currentUser = null;
+    const sessionUser = await requireAuth();
+    if (!sessionUser) throw new Error('auth');
+    initShell(sessionUser);
 
     async function loadProfile() {
-      const res = await apiFetch('/users/profile');
-      if (res && res.ok) {
-        currentUser = await res.json();
-        document.getElementById('displayFullName').innerText = currentUser.full_name;
-        document.getElementById('displayUsername').innerText = currentUser.username;
-        document.getElementById('displayRole').innerText = getUser()?.role || 'user';
-        const img = document.getElementById('profileImage');
-        if (currentUser.profile_image_url) {
-          img.src = currentUser.profile_image_url;
-          img.style.display = 'block';
-        } else {
-          img.style.display = 'none';
-        }
-        document.getElementById('editFullName').value = currentUser.full_name;
-      } else {
-        alert('Failed to load profile');
-      }
+      const { ok, data, error } = await apiJson('/users/profile');
+      if (!ok) return showToast(error, 'error');
+      setUser(data);
+      document.getElementById('displayFullName').textContent = data.fullName;
+      document.getElementById('displayUsername').textContent = data.username;
+      document.getElementById('displayRole').textContent = data.role === 'admin' ? 'Coordinator' : 'Member';
+      document.getElementById('editFullName').value = data.fullName;
+      const img = document.getElementById('profileImage');
+      img.src = data.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.fullName)}&background=1d4ed8&color=f5c518`;
     }
 
-    // Update full name
     document.getElementById('updateProfileForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const fullName = document.getElementById('editFullName').value;
-      const res = await apiFetch('/users/profile', {
+      const fullName = document.getElementById('editFullName').value.trim();
+      const { ok, data, error } = await apiJson('/users/profile', {
         method: 'PUT',
         body: JSON.stringify({ fullName })
       });
-      if (res && res.ok) {
-        alert('Name updated');
-        loadProfile();
-        // Update stored user
-        const user = getUser();
-        user.fullName = fullName;
-        localStorage.setItem('user', JSON.stringify(user));
-      } else {
-        alert('Update failed');
-      }
+      if (!ok) return setFormError('nameError', error);
+      setUser(data.user);
+      initShell(data.user);
+      setFormError('nameError', '');
+      showToast('Na-update ang pangalan.', 'success');
+      loadProfile();
     });
 
-    // Change password
     document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const oldPassword = document.getElementById('oldPassword').value;
-      const newPassword = document.getElementById('newPassword').value;
-      const res = await apiFetch('/users/profile', {
+      const { ok, error } = await apiJson('/users/profile', {
         method: 'PUT',
-        body: JSON.stringify({ oldPassword, newPassword })
+        body: JSON.stringify({
+          oldPassword: document.getElementById('oldPassword').value,
+          newPassword: document.getElementById('newPassword').value
+        })
       });
-      if (res && res.ok) {
-        alert('Password changed. Please login again.');
-        localStorage.clear();
-        window.location.href = '/login.html';
-      } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to change password');
-      }
+      if (!ok) return setFormError('passError', error);
+      clearSession();
+      location.href = '/login.html';
     });
 
-    // Profile image upload
     document.getElementById('uploadProfileImageBtn').addEventListener('click', async () => {
-      const fileInput = document.getElementById('profileImageUpload');
-      const file = fileInput.files[0];
-      if (!file) return alert('Select an image first');
-
-      const formData = new FormData();
-      formData.append('image', file);
-
-      const token = getToken();
-      const uploadRes = await fetch('/api/upload?bucket=profile-images', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
-      });
-
-      if (uploadRes.ok) {
-        const result = await uploadRes.json();
-        const fileUrl = result.files[0].fileUrl;
-        // Update user profile with image URL
-        const updateRes = await apiFetch('/users/profile', {
+      const file = document.getElementById('profileImageUpload').files[0];
+      if (!file) return showToast('Pumili muna ng larawan.', 'error');
+      try {
+        const files = await uploadFiles([file], 'profile-images');
+        const { ok, data, error } = await apiJson('/users/profile', {
           method: 'PUT',
-          body: JSON.stringify({ profileImageUrl: fileUrl })
+          body: JSON.stringify({ profileImageUrl: files[0].fileUrl })
         });
-        if (updateRes && updateRes.ok) {
-          alert('Profile image updated');
-          loadProfile();
-          // Update stored user
-          const user = getUser();
-          user.profileImageUrl = fileUrl;
-          localStorage.setItem('user', JSON.stringify(user));
-        } else {
-          alert('Failed to save image URL');
-        }
-      } else {
-        alert('Upload failed');
+        if (!ok) return showToast(error, 'error');
+        setUser(data.user);
+        showToast('Na-update ang larawan.', 'success');
+        loadProfile();
+      } catch (err) {
+        showToast(err.message, 'error');
       }
     });
 
-    updateNav();
-    initHamburger();
     loadProfile();
   </script>
 </body>
