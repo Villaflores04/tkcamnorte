@@ -1,61 +1,71 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fil">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Login - TK Cam Norte</title>
-  <!-- Google Fonts (modern) -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- Main CSS (cyan theme + glassmorphism) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="container" style="max-width: 480px;">
-    <div class="card" style="text-align: center;">
-      <h2 style="margin-bottom: 1rem;">🔐 Welcome Back</h2>
-      <p style="color: var(--text-muted); margin-bottom: 2rem;">Login to TK Cam Norte announcements</p>
-      
+  <main class="auth-wrap">
+    <div class="card auth-card">
+      <div class="brand">
+        <div class="mark">TK</div>
+        <div class="brand-name">Teatro Kristiano<small>Camarines Norte announcements</small></div>
+      </div>
+      <h1>Login</h1>
+      <p class="meta">Para sa members at coordinators ng chapter.</p>
       <form id="loginForm">
-        <input type="text" id="username" placeholder="Username" required autocomplete="off">
-        <input type="password" id="password" placeholder="Password" required>
-        <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;">Login</button>
+        <label for="username">Username</label>
+        <input id="username" autocomplete="username" required>
+        <label for="password">Password</label>
+        <div class="password-wrap">
+          <input id="password" type="password" autocomplete="current-password" required>
+          <button type="button" data-toggle="password">Show</button>
+        </div>
+        <p class="form-error" id="formError" hidden></p>
+        <button class="btn" type="submit" id="submitBtn">Login</button>
       </form>
-      
-      <p style="margin-top: 1.5rem;">
-        No account? <a href="/register.html" style="color: var(--cyan); text-decoration: none;">Register →</a>
-      </p>
+      <p class="meta" style="margin-top:1rem">Wala pang account? <a href="/register.html">Magrehistro</a></p>
     </div>
-  </div>
-
+  </main>
   <script type="module">
-    import { setToken, setUser, apiFetch, redirectBasedOnRole } from '/js/common.js';
+    import { setToken, setUser, apiJson, redirectBasedOnRole, getToken, refreshSession, setFormError } from '/js/common.js';
 
-    const form = document.getElementById('loginForm');
-    form.addEventListener('submit', async (e) => {
+    if (getToken()) {
+      const user = await refreshSession();
+      if (user) redirectBasedOnRole(user.role);
+    }
+
+    document.querySelector('[data-toggle="password"]').onclick = () => {
+      const input = document.getElementById('password');
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      document.querySelector('[data-toggle="password"]').textContent = show ? 'Hide' : 'Show';
+    };
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      
-      if (!username || !password) {
-        alert('Please enter username and password');
+      setFormError('formError', '');
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      btn.textContent = 'Nagla-login...';
+      const { ok, data, error } = await apiJson('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          username: document.getElementById('username').value.trim(),
+          password: document.getElementById('password').value
+        })
+      });
+      btn.disabled = false;
+      btn.textContent = 'Login';
+      if (!ok) {
+        setFormError('formError', error || 'Mali ang username o password.');
         return;
       }
-      
-      const res = await apiFetch('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({ username, password })
-      });
-      
-      if (res && res.ok) {
-        const data = await res.json();
-        setToken(data.token);
-        setUser(data.user);
-        // Redirect based on role (admin → /admin.html, user → /)
-        redirectBasedOnRole(data.user.role);
-      } else {
-        alert('Invalid username or password');
-      }
+      setToken(data.token);
+      setUser(data.user);
+      redirectBasedOnRole(data.user.role);
     });
   </script>
 </body>

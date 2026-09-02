@@ -1,64 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fil">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Register - TK Cam Norte</title>
-  <!-- Google Fonts (modern) -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-  <!-- Main CSS (cyan theme + glassmorphism) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="container" style="max-width: 480px;">
-    <div class="card" style="text-align: center;">
-      <h2 style="margin-bottom: 1rem;">✨ Create Account</h2>
-      <p style="color: var(--text-muted); margin-bottom: 2rem;">Join TK Cam Norte announcements</p>
-      
+  <main class="auth-wrap">
+    <div class="card auth-card">
+      <div class="brand">
+        <div class="mark">TK</div>
+        <div class="brand-name">Teatro Kristiano<small>Camarines Norte</small></div>
+      </div>
+      <h1>Magrehistro</h1>
+      <p class="meta">Regular member ang bagong account. Coordinator ang magpo-promote.</p>
       <form id="registerForm">
-        <input type="text" id="fullName" placeholder="Full Name" required autocomplete="off">
-        <input type="text" id="username" placeholder="Username (unique, no email)" required autocomplete="off">
-        <input type="password" id="password" placeholder="Password" required>
-        <button type="submit" class="btn" style="width: 100%; margin-top: 0.5rem;">Register</button>
+        <label for="fullName">Buong pangalan</label>
+        <input id="fullName" required>
+        <label for="username">Username</label>
+        <input id="username" required>
+        <p class="meta">3–24 letters, numbers, dot o underscore. Hindi email.</p>
+        <label for="password">Password</label>
+        <input id="password" type="password" minlength="8" required>
+        <label for="confirm">Ulitin ang password</label>
+        <input id="confirm" type="password" minlength="8" required>
+        <p class="form-error" id="formError" hidden></p>
+        <button class="btn btn-yellow" type="submit" id="submitBtn">Create account</button>
       </form>
-      
-      <p style="margin-top: 1.5rem;">
-        Already have an account? <a href="/login.html" style="color: var(--cyan); text-decoration: none;">Login →</a>
-      </p>
+      <p class="meta" style="margin-top:1rem">May account na? <a href="/login.html">Login</a></p>
     </div>
-  </div>
-
+  </main>
   <script type="module">
-    import { setToken, setUser, apiFetch } from '/js/common.js';
+    import { setToken, setUser, apiJson, setFormError } from '/js/common.js';
 
-    const form = document.getElementById('registerForm');
-    form.addEventListener('submit', async (e) => {
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      
       const fullName = document.getElementById('fullName').value.trim();
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
-      
-      if (!fullName || !username || !password) {
-        alert('Please fill all fields');
-        return;
+      const confirm = document.getElementById('confirm').value;
+      if (password !== confirm) return setFormError('formError', 'Hindi tugma ang password.');
+      if (password.length < 8) return setFormError('formError', '8 characters pataas ang password.');
+      if (!/^[a-zA-Z0-9._]{3,24}$/.test(username)) {
+        return setFormError('formError', 'Invalid username format.');
       }
-      
-      const res = await apiFetch('/auth/register', {
+      const btn = document.getElementById('submitBtn');
+      btn.disabled = true;
+      const { ok, data, error } = await apiJson('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ fullName, username, password })
       });
-      
-      if (res && res.ok) {
-        const data = await res.json();
-        setToken(data.token);
-        setUser(data.user);
-        alert('Registration successful! You are now logged in as a regular member. An admin must promote you to access admin features.');
-        window.location.href = '/';
-      } else {
-        const errorData = await res.json();
-        alert(errorData.error || 'Registration failed. Username might already exist.');
-      }
+      btn.disabled = false;
+      if (!ok) return setFormError('formError', error);
+      setToken(data.token);
+      setUser(data.user);
+      location.href = '/';
     });
   </script>
 </body>
