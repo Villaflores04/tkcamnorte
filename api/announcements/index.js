@@ -1,68 +1,86 @@
-import { verifyToken } from '../_lib/auth.js';
-import { supabase } from '../_lib/supabase.js';
+import { requireUser, requireAdmin, CATEGORIES } from '../_lib/auth.js';
+import { supabase, ANNOUNCEMENT_SELECT } from '../_lib/supabase.js';
+import { attachReactions } from '../_lib/reactions.js';
 
 export default async function handler(req, res) {
-  const user = verifyToken(req);
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const session = requireUser(req, res);
+  if (!session) return;
 
-  // GET: list announcements (newest first)
   if (req.method === 'GET') {
-    const { category } = req.query;
+    const { category, id } = req.query || {};
+    if (id) {
+      const { data, error } = await supabase
+        .from('announcements')
+        .select(ANNOUNCEMENT_SELECT)
+        .eq('id', id)
+        .single();
+      if (error) return res.status(404).json({ error: 'Hindi nahanap ang anunsyo.' });
+      const [withRx] = await attachReactions([data], session.userId);
+      return res.status(200).json(withRx);
+    }
+
     let query = supabase
       .from('announcements')
-      .select(`
-        *,
-        created_by_user:users(full_name, username),
-        attachments:announcement_attachments(file_url, file_name)
-      `)
-      .order('created_at', { ascending: false }); // 👈 NEWEST FIRST
+      .select(ANNOUNCEMENT_SELECT)
+      .order('is_pinned', { ascending: false })
+      .order('created_at', { ascending: false });
 
     if (category && category !== 'all') {
+      if (!CATEGORIES.includes(category)) {
+        return res.status(400).json({ error: 'Invalid category' });
+      }
       query = query.eq('category', category);
     }
 
     const { data, error } = await query;
     if (error) return res.status(500).json({ error: error.message });
-    return res.status(200).json(data);
+    const withRx = await attachReactions(data || [], session.userId);
+    return res.status(200).json(withRx);
   }
 
-  // POST: create announcement (admin only)
   if (req.method === 'POST') {
-    if (user.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
-
-    const { title, content, category, deadlineDate, isPinned, attachments } = req.body;
+    if (!requireAdmin(req, res)) return;
+    const { title, content, category, deadlineDate, isPinned, attachments } = req.body || {};
     if (!title || !content || !category) {
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({ error: 'Kailangan ang title, content, at category.' });
+    }
+    if (!CATEGORIES.includes(category)) {
+      return res.status(400).json({ error: 'Invalid category' });
     }
 
-    // Insert announcement
     const { data: announcement, error: insertError } = await supabase
       .from('announcements')
       .insert([{
-        title,
-        content,
+        title: String(title).trim(),
+        content: String(content).trim(),
         category,
         deadline_date: deadlineDate || null,
-        is_pinned: isPinned || false,
-        created_by: user.userId
+        is_pinned: Boolean(isPinned),
+        created_by: session.userId
       }])
-      .select()
+      .select(ANNOUNCEMENT_SELECT)
       .single();
 
     if (insertError) return res.status(500).json({ error: insertError.message });
 
-    // Insert attachments if any
-    if (attachments && attachments.length) {
-      const attachmentRows = attachments.map(a => ({
-        announcement_id: announcement.id,
-        file_url: a.fileUrl,
-        file_name: a.fileName,
-        file_size: a.fileSize
-      }));
-      await supabase.from('announcement_attachments').insert(attachmentRows);
+    if (Array.isArray(attachments) && attachments.length) {
+      await supabase.from('announcement_attachments').insert(
+        attachments.map((a) => ({
+          announcement_id: announcement.id,
+          file_url: a.fileUrl,
+          file_name: a.fileName,
+          file_size: a.fileSize || null
+        }))
+      );
     }
 
-    return res.status(201).json(announcement);
+    const { data: full } = await supabase
+      .from('announcements')
+      .select(ANNOUNCEMENT_SELECT)
+      .eq('id', announcement.id)
+      .single();
+
+    return res.status(201).json(full || announcement);
   }
 
   res.status(405).json({ error: 'Method not allowed' });
