@@ -2,7 +2,7 @@
 <html lang="fil">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Register · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -14,26 +14,20 @@
         <div class="brand-name">Teatro Kristiano<small>Camarines Norte</small></div>
       </div>
       <h1>Magrehistro</h1>
-      <p class="meta">Regular member ang bagong account. Coordinator ang magpo-promote.</p>
+      <p class="lede">Regular member ang bagong account. Coordinator ang magpo-promote.</p>
       <form id="registerForm">
-        <label for="fullName">Buong pangalan</label>
-        <input id="fullName" required>
-        <label for="username">Username</label>
-        <input id="username" required>
-        <p class="meta">3–24 letters, numbers, dot o underscore. Hindi email.</p>
-        <label for="password">Password</label>
-        <input id="password" type="password" minlength="8" required>
-        <label for="confirm">Ulitin ang password</label>
-        <input id="confirm" type="password" minlength="8" required>
+        <div class="field"><label for="fullName">Buong pangalan</label><input id="fullName" required></div>
+        <div class="field"><label for="username">Username</label><input id="username" required><p class="meta" style="margin-top:6px">3–24 letters, numbers, dot o underscore.</p></div>
+        <div class="field"><label for="password">Password</label><input id="password" type="password" minlength="8" required></div>
+        <div class="field"><label for="confirm">Ulitin ang password</label><input id="confirm" type="password" minlength="8" required></div>
         <p class="form-error" id="formError" hidden></p>
         <button class="btn btn-yellow" type="submit" id="submitBtn">Create account</button>
       </form>
-      <p class="meta" style="margin-top:1rem">May account na? <a href="/login.html">Login</a></p>
+      <p class="meta auth-foot">May account na? <a href="/login.html">Login</a></p>
     </div>
   </main>
   <script type="module">
     import { setToken, setUser, apiJson, setFormError } from '/js/common.js';
-
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const fullName = document.getElementById('fullName').value.trim();
@@ -42,20 +36,13 @@
       const confirm = document.getElementById('confirm').value;
       if (password !== confirm) return setFormError('formError', 'Hindi tugma ang password.');
       if (password.length < 8) return setFormError('formError', '8 characters pataas ang password.');
-      if (!/^[a-zA-Z0-9._]{3,24}$/.test(username)) {
-        return setFormError('formError', 'Invalid username format.');
-      }
+      if (!/^[a-zA-Z0-9._]{3,24}$/.test(username)) return setFormError('formError', 'Invalid username format.');
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
-      const { ok, data, error } = await apiJson('/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({ fullName, username, password })
-      });
+      const { ok, data, error } = await apiJson('/auth/register', { method: 'POST', body: JSON.stringify({ fullName, username, password }) });
       btn.disabled = false;
       if (!ok) return setFormError('formError', error);
-      setToken(data.token);
-      setUser(data.user);
-      location.href = '/';
+      setToken(data.token); setUser(data.user); location.href = '/';
     });
   </script>
 </body>

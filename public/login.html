@@ -2,7 +2,7 @@
 <html lang="fil">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Login · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -11,39 +11,40 @@
     <div class="card auth-card">
       <div class="brand">
         <div class="mark">TK</div>
-        <div class="brand-name">Teatro Kristiano<small>Camarines Norte announcements</small></div>
+        <div class="brand-name">Teatro Kristiano<small>Camarines Norte</small></div>
       </div>
       <h1>Login</h1>
-      <p class="meta">Para sa members at coordinators ng chapter.</p>
+      <p class="lede">Members at coordinators ng TK Cam Norte.</p>
       <form id="loginForm">
-        <label for="username">Username</label>
-        <input id="username" autocomplete="username" required>
-        <label for="password">Password</label>
-        <div class="password-wrap">
-          <input id="password" type="password" autocomplete="current-password" required>
-          <button type="button" data-toggle="password">Show</button>
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="password-wrap">
+            <input id="password" type="password" autocomplete="current-password" required>
+            <button type="button" data-toggle="password">Show</button>
+          </div>
         </div>
         <p class="form-error" id="formError" hidden></p>
         <button class="btn" type="submit" id="submitBtn">Login</button>
       </form>
-      <p class="meta" style="margin-top:1rem">Wala pang account? <a href="/register.html">Magrehistro</a></p>
+      <p class="meta auth-foot">Wala pang account? <a href="/register.html">Magrehistro</a></p>
     </div>
   </main>
   <script type="module">
     import { setToken, setUser, apiJson, redirectBasedOnRole, getToken, refreshSession, setFormError } from '/js/common.js';
-
     if (getToken()) {
       const user = await refreshSession();
       if (user) redirectBasedOnRole(user.role);
     }
-
     document.querySelector('[data-toggle="password"]').onclick = () => {
       const input = document.getElementById('password');
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
       document.querySelector('[data-toggle="password"]').textContent = show ? 'Hide' : 'Show';
     };
-
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       setFormError('formError', '');
@@ -59,10 +60,7 @@
       });
       btn.disabled = false;
       btn.textContent = 'Login';
-      if (!ok) {
-        setFormError('formError', error || 'Mali ang username o password.');
-        return;
-      }
+      if (!ok) { setFormError('formError', error || 'Mali ang username o password.'); return; }
       setToken(data.token);
       setUser(data.user);
       redirectBasedOnRole(data.user.role);
