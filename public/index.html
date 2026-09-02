@@ -2,7 +2,7 @@
 <html lang="fil">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Anunsyo · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -10,9 +10,9 @@
   <header class="topbar">
     <a class="brand" href="/">
       <div class="mark">TK</div>
-      <div class="brand-name">TK Cam Norte<small>Teatro Kristiano announcements</small></div>
+      <div class="brand-name">TK Cam Norte<small>Teatro Kristiano</small></div>
     </a>
-    <button class="hamburger" id="hamburger" type="button">☰</button>
+    <button class="hamburger" id="hamburger" type="button" aria-label="Menu">☰</button>
     <ul class="nav-links" id="navLinks"></ul>
   </header>
   <main class="container">
@@ -71,18 +71,16 @@
       const admin = isAdmin();
       return `
         <article class="card announcement cat-${escapeHtml(a.category)} ${a.is_pinned ? 'pinned' : ''}" data-post="${a.id}">
-          <div class="card-top">
-            <div>
-              <span class="chip">${escapeHtml(categoryLabel(a.category))}</span>
-              ${a.is_pinned ? '<span class="badge badge-pin">Pinned</span>' : ''}
-              ${due ? `<span class="badge badge-${due.tone}">${due.label}</span>` : ''}
-              <h3>${escapeHtml(a.title)}</h3>
-            </div>
+          <div class="tag-row">
+            <span class="badge badge-cat">${escapeHtml(categoryLabel(a.category))}</span>
+            ${a.is_pinned ? '<span class="badge badge-pin">Pinned</span>' : ''}
+            ${due ? `<span class="badge badge-${due.tone}">${due.label}</span>` : ''}
           </div>
+          <h3>${escapeHtml(a.title)}</h3>
           <p class="body-text">${escapeHtml(a.content)}</p>
-          <p class="meta">Posted by ${escapeHtml(a.created_by_user?.full_name || 'Coordinator')} · ${formatDate(a.created_at, true)}</p>
+          <p class="meta">${escapeHtml(a.created_by_user?.full_name || 'Coordinator')} · ${formatDate(a.created_at, true)}</p>
           <div class="attachments">
-            ${(a.attachments || []).map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">📎 ${escapeHtml(f.file_name || 'File')}</a>`).join('')}
+            ${(a.attachments || []).map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${escapeHtml(f.file_name || 'File')}</a>`).join('')}
           </div>
           ${renderReactions(a)}
           ${admin ? `<div class="btn-row"><a class="btn btn-ghost" href="/admin.html?edit=${a.id}">Edit</a></div>` : ''}
@@ -101,14 +99,8 @@
       const { ok, data } = await apiJson(`/comments?announcementId=${announcementId}`);
       const list = document.querySelector(`.comments-section[data-id="${announcementId}"] .comments-list`);
       if (!list) return;
-      if (!ok) {
-        list.innerHTML = '<p class="meta">Hindi na-load ang comments.</p>';
-        return;
-      }
-      if (!data.length) {
-        list.innerHTML = '<p class="meta">Unang magtanong.</p>';
-        return;
-      }
+      if (!ok) { list.innerHTML = '<p class="meta">Hindi na-load ang comments.</p>'; return; }
+      if (!data.length) { list.innerHTML = '<p class="meta">Unang magtanong.</p>'; return; }
       const me = getUser();
       list.innerHTML = data.map((c) => {
         const canManage = me && (me.id === c.user_id || me.role === 'admin');
@@ -144,22 +136,18 @@
           loadComments(btn.dataset.id);
         };
       });
-
       root.addEventListener('click', async (e) => {
         const del = e.target.closest('[data-del-comment]');
         const edit = e.target.closest('[data-edit-comment]');
         if (del) {
           if (!confirm('Delete this comment?')) return;
-          const id = del.dataset.delComment;
-          const section = del.closest('.comments-section');
-          const { ok, error } = await apiJson(`/comments?commentId=${id}`, { method: 'DELETE' });
+          const { ok, error } = await apiJson(`/comments?commentId=${del.dataset.delComment}`, { method: 'DELETE' });
           if (!ok) return showToast(error, 'error');
-          loadComments(section.dataset.id);
+          loadComments(del.closest('.comments-section').dataset.id);
         }
         if (edit) {
           const wrap = edit.closest('.comment');
-          const current = wrap.querySelector('.comment-body').textContent;
-          const next = prompt('Edit comment', current);
+          const next = prompt('Edit comment', wrap.querySelector('.comment-body').textContent);
           if (next == null || !next.trim()) return;
           const { ok, error } = await apiJson('/comments', {
             method: 'PUT',
