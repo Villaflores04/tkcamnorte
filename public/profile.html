@@ -6,6 +6,7 @@
   <title>Profile · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/premium.css">
+  <link rel="stylesheet" href="/css/fixes.css">
 </head>
 <body>
   <header class="topbar">
@@ -13,7 +14,10 @@
       <div class="mark">TK</div>
       <div class="brand-name">TK Cam Norte<small>Profile</small></div>
     </a>
-    <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+    <div class="header-actions" id="headerActions">
+      <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span aria-hidden="true">🔔</span><em id="notifyBadge" hidden>0</em></button>
+      <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+    </div>
     <ul class="nav-links" id="navLinks"></ul>
   </header>
   <main class="container">
@@ -64,15 +68,17 @@
       </form>
     </section>
   </main>
+  <div id="bottomNavHost"></div>
   <script type="module">
     import {
       requireAuth, initShell, apiJson, setUser, clearSession, uploadFiles,
-      showToast, setFormError
+      showToast, setFormError, bottomNav
     } from '/js/common.js';
 
     const sessionUser = await requireAuth();
     if (!sessionUser) throw new Error('auth');
     initShell(sessionUser);
+    document.getElementById('bottomNavHost').innerHTML = bottomNav('profile');
 
     async function loadProfile() {
       const { ok, data, error } = await apiJson('/users/profile');
