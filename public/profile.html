@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Profile · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/premium.css">
 </head>
 <body>
   <header class="topbar">
@@ -12,7 +13,7 @@
       <div class="mark">TK</div>
       <div class="brand-name">TK Cam Norte<small>Profile</small></div>
     </a>
-    <button class="hamburger" id="hamburger" type="button" aria-label="Menu">☰</button>
+    <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
     <ul class="nav-links" id="navLinks"></ul>
   </header>
   <main class="container">
@@ -41,9 +42,9 @@
       <form id="updateProfileForm">
         <div class="field">
           <label for="editFullName">Buong pangalan</label>
-          <input id="editFullName" required>
+          <input id="editFullName" required autocomplete="name">
         </div>
-        <p class="form-error" id="nameError" hidden></p>
+        <p class="form-error" id="nameError" hidden aria-live="polite"></p>
         <button class="btn btn-yellow" type="submit">Save name</button>
       </form>
     </section>
@@ -52,13 +53,13 @@
       <form id="changePasswordForm">
         <div class="field">
           <label for="oldPassword">Lumang password</label>
-          <input id="oldPassword" type="password" required>
+          <input id="oldPassword" type="password" autocomplete="current-password" required>
         </div>
         <div class="field">
           <label for="newPassword">Bagong password</label>
-          <input id="newPassword" type="password" minlength="8" required>
+          <input id="newPassword" type="password" minlength="8" autocomplete="new-password" required>
         </div>
-        <p class="form-error" id="passError" hidden></p>
+        <p class="form-error" id="passError" hidden aria-live="polite"></p>
         <button class="btn" type="submit">Change password</button>
       </form>
     </section>
@@ -89,8 +90,7 @@
       e.preventDefault();
       const fullName = document.getElementById('editFullName').value.trim();
       const { ok, data, error } = await apiJson('/users/profile', {
-        method: 'PUT',
-        body: JSON.stringify({ fullName })
+        method: 'PUT', body: JSON.stringify({ fullName })
       });
       if (!ok) return setFormError('nameError', error);
       setUser(data.user);
@@ -103,8 +103,7 @@
     document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const { ok, error } = await apiJson('/users/profile', {
-        method: 'PUT',
-        body: JSON.stringify({
+        method: 'PUT', body: JSON.stringify({
           oldPassword: document.getElementById('oldPassword').value,
           newPassword: document.getElementById('newPassword').value
         })
@@ -117,11 +116,13 @@
     document.getElementById('uploadProfileImageBtn').addEventListener('click', async () => {
       const file = document.getElementById('profileImageUpload').files[0];
       if (!file) return showToast('Pumili muna ng larawan.', 'error');
+      const btn = document.getElementById('uploadProfileImageBtn');
+      btn.disabled = true;
+      btn.textContent = 'Uploading...';
       try {
         const files = await uploadFiles([file], 'profile-images');
         const { ok, data, error } = await apiJson('/users/profile', {
-          method: 'PUT',
-          body: JSON.stringify({ profileImageUrl: files[0].fileUrl })
+          method: 'PUT', body: JSON.stringify({ profileImageUrl: files[0].fileUrl })
         });
         if (!ok) return showToast(error, 'error');
         setUser(data.user);
@@ -129,6 +130,9 @@
         loadProfile();
       } catch (err) {
         showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Upload photo';
       }
     });
 
