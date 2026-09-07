@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Register · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/premium.css">
 </head>
 <body>
   <main class="auth-wrap">
@@ -18,22 +19,22 @@
       <form id="registerForm">
         <div class="field">
           <label for="fullName">Buong pangalan</label>
-          <input id="fullName" required>
+          <input id="fullName" autocomplete="name" required>
         </div>
         <div class="field">
           <label for="username">Username</label>
-          <input id="username" required>
+          <input id="username" autocomplete="username" required>
           <p class="meta" style="margin-top:6px">3–24 letters, numbers, dot o underscore.</p>
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <input id="password" type="password" minlength="8" required>
+          <input id="password" type="password" autocomplete="new-password" minlength="8" required>
         </div>
         <div class="field">
           <label for="confirm">Ulitin ang password</label>
-          <input id="confirm" type="password" minlength="8" required>
+          <input id="confirm" type="password" autocomplete="new-password" minlength="8" required>
         </div>
-        <p class="form-error" id="formError" hidden></p>
+        <p class="form-error" id="formError" hidden aria-live="polite"></p>
         <button class="btn btn-yellow" type="submit" id="submitBtn">Create account</button>
       </form>
       <p class="meta auth-foot">May account na? <a href="/login.html">Login</a></p>
@@ -43,6 +44,7 @@
     import { setToken, setUser, apiJson, setFormError } from '/js/common.js';
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      setFormError('formError', '');
       const fullName = document.getElementById('fullName').value.trim();
       const username = document.getElementById('username').value.trim();
       const password = document.getElementById('password').value;
@@ -52,8 +54,10 @@
       if (!/^[a-zA-Z0-9._]{3,24}$/.test(username)) return setFormError('formError', 'Invalid username format.');
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
+      btn.textContent = 'Creating account...';
       const { ok, data, error } = await apiJson('/auth/register', { method: 'POST', body: JSON.stringify({ fullName, username, password }) });
       btn.disabled = false;
+      btn.textContent = 'Create account';
       if (!ok) return setFormError('formError', error);
       setToken(data.token); setUser(data.user); location.href = '/';
     });
