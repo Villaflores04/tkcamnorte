@@ -216,7 +216,7 @@ async function loadUsers() {
   box.querySelectorAll('[data-del-user]').forEach((b) => b.onclick = async () => {
     if (!confirm('Delete this member permanently?')) return;
     b.disabled = true;
-    const { ok, error } = await apiJson('/users/delete', { method: 'POST', body: JSON.stringify({ userId: b.dataset.delUser }) });
+    const { ok, error } = await apiJson('/users/promote', { method: 'POST', body: JSON.stringify({ userId: b.dataset.delUser, remove: true }) });
     if (!ok) { b.disabled = false; return showToast(error, 'error'); }
     showToast('Member deleted.', 'success');
     loadUsers();
