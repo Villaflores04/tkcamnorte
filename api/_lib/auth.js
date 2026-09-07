@@ -3,6 +3,11 @@ import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+export const DEFAULT_ADMIN = {
+  username: 'admin',
+  password: '#admin321'
+};
+
 export function verifyToken(req) {
   const authHeader = req.headers.authorization || req.headers.Authorization;
   if (!authHeader || !String(authHeader).startsWith('Bearer ')) return null;

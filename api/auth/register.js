@@ -1,5 +1,5 @@
 import { supabase } from '../_lib/supabase.js';
-import { hashPassword, generateToken, publicUser, USERNAME_RE } from '../_lib/auth.js';
+import { hashPassword, generateToken, publicUser, USERNAME_RE, DEFAULT_ADMIN } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -16,6 +16,9 @@ export default async function handler(req, res) {
   }
   if (!USERNAME_RE.test(username)) {
     return res.status(400).json({ error: 'Username: 3–24 letters, numbers, dot o underscore.' });
+  }
+  if (username.toLowerCase() === DEFAULT_ADMIN.username) {
+    return res.status(400).json({ error: 'Reserved ang username na ito. Gumamit ng ibang username.' });
   }
   if (password.length < 8) {
     return res.status(400).json({ error: 'Ang password ay dapat 8 characters pataas.' });

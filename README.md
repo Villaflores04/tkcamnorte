@@ -1,6 +1,6 @@
 # TK Cam Norte
 
-Private announcement board for **Teatro Kristiano Camarines Norte** (MCGI theater and dance chapter).
+Private announcement board for **Teatro Kristiano Camarines Norte**.
 
 Live: https://tkcamnorte.vercel.app
 
@@ -17,22 +17,26 @@ Live: https://tkcamnorte.vercel.app
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
-## First coordinator login
+## Default coordinator
 
-1. Register at `/register.html`
-2. In Supabase SQL:
+Login:
 
-```sql
-update public.users set role = 'admin' where username = 'YOUR_USERNAME';
-```
+- username: `admin`
+- password: `#admin321`
 
-3. Log out and log in again. JWT stores role for 7 days.
+The first successful login with those credentials creates (or repairs) the default admin row.
 
-After the first coordinator exists, use **Coordinator → Members → Promote**. That person must log in again.
+Do **not** register a member with username `admin` — it is reserved.
 
-## Reactions table
+After other coordinators exist, use **Coordinator → Members → Promote**. That person must log in again so the JWT picks up the new role.
 
-Run `schema.sql` in the Supabase SQL editor so Amen / Love / Clap works.
+## SQL
+
+Run `schema.sql` in the Supabase SQL editor (safe to re-run). Needed for:
+
+- reactions (`announcement_reactions`)
+- duration fields (`starts_at`, `ends_at`)
+- cover image (`cover_image_url`)
 
 Create public storage buckets if missing:
 
