@@ -55,26 +55,26 @@
     async function loadAnnouncements() {
       const box = document.getElementById('announcementsList');
       box.innerHTML = '<div class="card empty">Loading announcements…</div>';
-      const qs = currentCategory !== 'all' ? `?category=${currentCategory}` : '';
+      const qs = currentCategory !== 'all' ? `?category=${encodeURIComponent(currentCategory)}` : '';
       const { ok, data, error } = await apiJson(`/announcements${qs}`);
       if (!ok) {
         box.innerHTML = `<div class="card empty">${escapeHtml(error)}</div>`;
         return;
       }
-      if (!data.length) {
+      if (!Array.isArray(data) || !data.length) {
         box.innerHTML = '<div class="card empty">Wala pang anunsyo sa category na ito.</div>';
         return;
       }
       box.innerHTML = data.map(renderCard).join('');
       bindReactions(box);
-      data.forEach((a) => loadComments(a.id));
       bindCommentEvents(box);
+      data.forEach((a) => loadComments(a.id));
     }
 
     function renderCard(a) {
       const due = deadlineMeta(a.deadline_date);
       const admin = isAdmin();
-      const files = a.attachments || [];
+      const files = Array.isArray(a.attachments) ? a.attachments : [];
       return `
         <article class="card announcement cat-${escapeHtml(a.category)} ${a.is_pinned ? 'pinned' : ''}" data-post="${a.id}">
           <div class="tag-row">
@@ -87,10 +87,10 @@
           <p class="meta">${escapeHtml(a.created_by_user?.full_name || 'Coordinator')} · ${formatDate(a.created_at, true)}</p>
           ${files.length ? `<div class="attachments">${files.map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${escapeHtml(f.file_name || 'File')}</a>`).join('')}</div>` : ''}
           ${renderReactions(a)}
-          ${admin ? `<div class="btn-row single"><a class="btn btn-ghost" href="/admin.html?edit=${a.id}">Edit</a></div>` : ''}
+          ${admin ? `<div class="btn-row single"><a class="btn btn-ghost" href="/admin.html?edit=${encodeURIComponent(a.id)}">Edit</a></div>` : ''}
           <section class="comments-section" data-id="${a.id}">
             <h4>Mga komento</h4>
-            <div class="comments-list"></div>
+            <div class="comments-list"><p class="meta">Loading comments…</p></div>
             <div class="comment-composer">
               <textarea class="comment-text" rows="1" maxlength="1000" placeholder="Magtanong o mag-reply..." aria-label="Comment"></textarea>
               <button class="btn add-comment" data-id="${a.id}" type="button">Send</button>
@@ -100,11 +100,11 @@
     }
 
     async function loadComments(announcementId) {
-      const { ok, data } = await apiJson(`/comments?announcementId=${announcementId}`);
-      const list = document.querySelector(`.comments-section[data-id="${announcementId}"] .comments-list`);
+      const { ok, data } = await apiJson(`/comments?announcementId=${encodeURIComponent(announcementId)}`);
+      const list = document.querySelector(`.comments-section[data-id="${CSS.escape(String(announcementId))}"] .comments-list`);
       if (!list) return;
       if (!ok) { list.innerHTML = '<p class="meta">Hindi na-load ang comments.</p>'; return; }
-      if (!data.length) { list.innerHTML = '<p class="meta">Unang magtanong.</p>'; return; }
+      if (!Array.isArray(data) || !data.length) { list.innerHTML = '<p class="meta">Unang magtanong.</p>'; return; }
       const me = getUser();
       list.innerHTML = data.map((c) => {
         const canManage = me && (me.id === c.user_id || me.role === 'admin');
@@ -124,45 +124,60 @@
     }
 
     function bindCommentEvents(root) {
-      root.querySelectorAll('.add-comment').forEach((btn) => {
-        btn.onclick = async () => {
-          const section = btn.closest('.comments-section');
-          const text = section.querySelector('.comment-text').value.trim();
-          if (!text) return;
-          btn.disabled = true;
-          btn.textContent = 'Sending…';
-          const { ok, error } = await apiJson('/comments', {
-            method: 'POST',
-            body: JSON.stringify({ announcementId: btn.dataset.id, text })
-          });
-          btn.disabled = false;
-          btn.textContent = 'Send';
-          if (!ok) return showToast(error, 'error');
-          section.querySelector('.comment-text').value = '';
-          loadComments(btn.dataset.id);
-        };
-      });
-      root.addEventListener('click', async (e) => {
+      // Assignment (rather than addEventListener) makes this safe when the feed is re-rendered.
+      root.onclick = async (e) => {
+        const add = e.target.closest('.add-comment');
         const del = e.target.closest('[data-del-comment]');
         const edit = e.target.closest('[data-edit-comment]');
+
+        if (add) {
+          const section = add.closest('.comments-section');
+          const textEl = section?.querySelector('.comment-text');
+          const text = textEl?.value.trim();
+          if (!text || add.disabled) return;
+          add.disabled = true;
+          add.textContent = 'Sending…';
+          const { ok, error } = await apiJson('/comments', {
+            method: 'POST',
+            body: JSON.stringify({ announcementId: add.dataset.id, text })
+          });
+          add.disabled = false;
+          add.textContent = 'Send';
+          if (!ok) return showToast(error, 'error');
+          textEl.value = '';
+          await loadComments(add.dataset.id);
+          return;
+        }
+
         if (del) {
           if (!confirm('Delete this comment?')) return;
-          const { ok, error } = await apiJson(`/comments?commentId=${del.dataset.delComment}`, { method: 'DELETE' });
-          if (!ok) return showToast(error, 'error');
-          loadComments(del.closest('.comments-section').dataset.id);
+          del.disabled = true;
+          const { ok, error } = await apiJson(`/comments?commentId=${encodeURIComponent(del.dataset.delComment)}`, { method: 'DELETE' });
+          if (!ok) {
+            del.disabled = false;
+            return showToast(error, 'error');
+          }
+          await loadComments(del.closest('.comments-section').dataset.id);
+          return;
         }
+
         if (edit) {
           const wrap = edit.closest('.comment');
-          const next = prompt('Edit comment', wrap.querySelector('.comment-body').textContent);
+          const current = wrap?.querySelector('.comment-body')?.textContent || '';
+          const next = prompt('Edit comment', current);
           if (next == null || !next.trim()) return;
+          edit.disabled = true;
           const { ok, error } = await apiJson('/comments', {
             method: 'PUT',
             body: JSON.stringify({ commentId: edit.dataset.editComment, text: next.trim() })
           });
-          if (!ok) return showToast(error, 'error');
-          loadComments(edit.closest('.comments-section').dataset.id);
+          if (!ok) {
+            edit.disabled = false;
+            return showToast(error, 'error');
+          }
+          await loadComments(edit.closest('.comments-section').dataset.id);
         }
-      });
+      };
     }
 
     loadAnnouncements();
