@@ -1,24 +1,135 @@
 <!DOCTYPE html>
 <html lang="fil">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>Anunsyo · TK Cam Norte</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/premium.css"></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Anunsyo · TK Cam Norte</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/premium.css">
+  <link rel="stylesheet" href="/css/fixes.css">
+</head>
 <body>
-<header class="topbar"><a class="brand" href="/"><div class="mark">TK</div><div class="brand-name">TK Cam Norte<small>Teatro Kristiano</small></div></a><button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button><ul class="nav-links" id="navLinks"></ul></header>
-<main class="container">
-<section class="home-hero"><div class="eyebrow">Magandang araw,</div><h1 id="welcomeName">Kaibigan 👋</h1><p>Stay updated sa mga importanteng announcement ng TK Cam Norte.</p><div class="script" aria-hidden="true">Together<br>in His<br>Purpose</div></section>
-<section class="section-head"><h2>Mga Anunsyo</h2><div class="underline"></div><p>Mga bagong update, schedules, deadlines, at activities.</p></section>
-<div class="chip-row" id="filters" aria-label="Announcement categories"></div><div id="announcementsList"></div>
-</main>
-<nav class="mobile-bottom-nav" aria-label="Main navigation"><a class="active" href="/"><span class="nav-icon">⌂</span><span>Home</span></a><a href="#announcementsList"><span class="nav-icon">◈</span><span>Anunsyo</span></a><a href="#filters"><span class="nav-icon">□</span><span>Kalendaryo</span></a><a href="/profile.html"><span class="nav-icon">♧</span><span>Mga Grupo</span></a><a href="/profile.html"><span class="nav-icon">♙</span><span>Profile</span></a></nav>
-<style>
-.announcement-main{display:flex;align-items:flex-start;gap:14px}.announcement-main>div:first-child{min-width:0;flex:1}.announcement-main .deadline-box{flex:0 0 168px;margin-top:8px}.deadline-box .meta{font-size:11px}.deadline-box strong{white-space:nowrap}@media(max-width:480px){.announcement-main{display:block}.announcement-main .deadline-box{width:100%;margin:12px 0 0}}
-</style>
-<script type="module">
-import{requireAuth,initShell,apiJson,escapeHtml,formatDate,deadlineMeta,categoryLabel,CATEGORIES,renderReactions,bindReactions,isAdmin,getUser,showToast}from'/js/common.js';
-const user=await requireAuth();if(!user)throw new Error('auth');initShell(user);document.getElementById('welcomeName').textContent=`${user.fullName||user.username} 👋`;
-let currentCategory='all';const filters=document.getElementById('filters');filters.innerHTML=CATEGORIES.map(c=>`<button class="chip ${c.id==='all'?'active':''}" data-cat="${c.id}" aria-pressed="${c.id==='all'}">${escapeHtml(c.label)}</button>`).join('');filters.addEventListener('click',e=>{const btn=e.target.closest('[data-cat]');if(!btn)return;currentCategory=btn.dataset.cat;filters.querySelectorAll('.chip').forEach(el=>{const active=el===btn;el.classList.toggle('active',active);el.setAttribute('aria-pressed',String(active))});loadAnnouncements()});
-async function loadAnnouncements(){const box=document.getElementById('announcementsList');box.innerHTML='<div class="card empty">Loading announcements…</div>';const qs=currentCategory!=='all'?`?category=${encodeURIComponent(currentCategory)}`:'';const{ok,data,error}=await apiJson(`/announcements${qs}`);if(!ok){box.innerHTML=`<div class="card empty">${escapeHtml(error)}</div>`;return}if(!Array.isArray(data)||!data.length){box.innerHTML='<div class="card empty">Wala pang anunsyo sa category na ito.</div>';return}box.innerHTML=data.map(renderCard).join('');bindReactions(box);bindCommentEvents(box);data.forEach(a=>loadComments(a.id))}
-function renderCard(a){const due=deadlineMeta(a.deadline_date),admin=isAdmin(),files=Array.isArray(a.attachments)?a.attachments:[];const deadline=due?`<div class="deadline-box"><strong>◷ ${escapeHtml(due.label.toUpperCase())}</strong><div class="bar"><span></span></div><span class="meta">${escapeHtml(formatDate(a.deadline_date))}</span></div>`:'';return `<article class="card announcement cat-${escapeHtml(a.category)} ${a.is_pinned?'pinned':''}" data-post="${escapeHtml(a.id)}"><div class="tag-row"><span class="badge badge-cat">${escapeHtml(categoryLabel(a.category))}</span>${a.is_pinned?'<span class="badge badge-pin">📌 PINNED</span>':''}</div><div class="announcement-main"><div><h3>${escapeHtml(a.title)}</h3><p class="body-text">${escapeHtml(a.content)}</p></div>${deadline}</div><p class="meta">${escapeHtml(a.created_by_user?.full_name||'Coordinator')} · ${formatDate(a.created_at,true)}</p>${files.length?`<div class="attachments">${files.map(f=>`<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">📄 ${escapeHtml(f.file_name||'File')} <span>↗</span></a>`).join('')}</div>`:''}${renderReactions(a)}${admin?`<div class="btn-row single"><a class="btn btn-ghost" href="/admin.html?edit=${encodeURIComponent(a.id)}">Edit</a></div>`:''}<section class="comments-section" data-id="${escapeHtml(a.id)}"><h4>Mga komento</h4><div class="comments-list"><p class="meta">Loading comments…</p></div><div class="comment-composer"><textarea class="comment-text" rows="1" maxlength="1000" placeholder="Magtanong o mag-reply..." aria-label="Comment"></textarea><button class="btn add-comment" data-id="${escapeHtml(a.id)}" type="button">Send</button></div></section></article>`}
-async function loadComments(id){const{ok,data}=await apiJson(`/comments?announcementId=${encodeURIComponent(id)}`);const list=document.querySelector(`.comments-section[data-id="${CSS.escape(String(id))}"] .comments-list`);if(!list)return;if(!ok){list.innerHTML='<p class="meta">Hindi na-load ang comments.</p>';return}if(!Array.isArray(data)||!data.length){list.innerHTML='<p class="meta">Unang magtanong.</p>';return}const me=getUser();list.innerHTML=data.map(c=>{const canManage=me&&(me.id===c.user_id||me.role==='admin');return `<div class="comment" data-comment="${escapeHtml(c.id)}"><div class="comment-head"><strong>${escapeHtml(c.user?.full_name||'Member')}</strong><small>${formatDate(c.created_at,true)}</small></div><p class="comment-body">${escapeHtml(c.text)}</p>${canManage?`<div class="comment-actions"><button type="button" data-edit-comment="${escapeHtml(c.id)}">Edit</button><button type="button" data-del-comment="${escapeHtml(c.id)}">Delete</button></div>`:''}</div>`}).join('')}
-function bindCommentEvents(root){root.onclick=async e=>{const add=e.target.closest('.add-comment'),del=e.target.closest('[data-del-comment]'),edit=e.target.closest('[data-edit-comment]');if(add){const section=add.closest('.comments-section'),textEl=section?.querySelector('.comment-text'),text=textEl?.value.trim();if(!text||add.disabled)return;add.disabled=true;add.textContent='Sending…';const{ok,error}=await apiJson('/comments',{method:'POST',body:JSON.stringify({announcementId:add.dataset.id,text})});add.disabled=false;add.textContent='Send';if(!ok)return showToast(error,'error');textEl.value='';await loadComments(add.dataset.id);return}if(del){if(!confirm('Delete this comment?'))return;del.disabled=true;const{ok,error}=await apiJson(`/comments?commentId=${encodeURIComponent(del.dataset.delComment)}`,{method:'DELETE'});if(!ok){del.disabled=false;return showToast(error,'error')}await loadComments(del.closest('.comments-section').dataset.id);return}if(edit){const wrap=edit.closest('.comment'),current=wrap?.querySelector('.comment-body')?.textContent||'',next=prompt('Edit comment',current);if(next==null||!next.trim())return;edit.disabled=true;const{ok,error}=await apiJson('/comments',{method:'PUT',body:JSON.stringify({commentId:edit.dataset.editComment,text:next.trim()})});if(!ok){edit.disabled=false;return showToast(error,'error')}await loadComments(edit.closest('.comments-section').dataset.id)}}}
-loadAnnouncements();
-</script></body></html>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <div class="mark">TK</div>
+      <div class="brand-name">TK Cam Norte<small>Teatro Kristiano</small></div>
+    </a>
+    <div class="header-actions" id="headerActions">
+      <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span aria-hidden="true">🔔</span><em id="notifyBadge" hidden>0</em></button>
+      <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+    </div>
+    <ul class="nav-links" id="navLinks"></ul>
+  </header>
+  <main class="container">
+    <section class="home-hero">
+      <div class="eyebrow">Magandang araw,</div>
+      <h1 id="welcomeName">Kaibigan</h1>
+      <p>Stay updated sa mga importanteng announcement ng TK Cam Norte.</p>
+      <div class="script" aria-hidden="true">Together<br>in His<br>Purpose</div>
+    </section>
+    <section class="section-head">
+      <h2>Mga Anunsyo</h2>
+      <div class="underline"></div>
+      <p>Mga bagong update, schedules, deadlines, at activities.</p>
+    </section>
+    <div class="chip-row" id="filters" aria-label="Announcement categories"></div>
+    <div id="announcementsList"></div>
+  </main>
+  <div id="bottomNavHost"></div>
+  <script type="module">
+    import {
+      requireAuth, initShell, apiJson, escapeHtml, formatDate, relativeTime,
+      deadlineMeta, categoryLabel, CATEGORIES, renderReactions, bindReactions,
+      isAdmin, avatarUrl, firstName, bottomNav, coverOf, isOngoing
+    } from '/js/common.js';
+
+    const user = await requireAuth();
+    if (!user) throw new Error('auth');
+    initShell(user);
+    document.getElementById('welcomeName').textContent = firstName(user);
+    document.getElementById('bottomNavHost').innerHTML = bottomNav('home');
+
+    let currentCategory = 'all';
+    const filters = document.getElementById('filters');
+    filters.innerHTML = CATEGORIES.map((c) =>
+      `<button class="chip ${c.id === 'all' ? 'active' : ''}" data-cat="${c.id}" aria-pressed="${c.id === 'all'}">${escapeHtml(c.label)}</button>`
+    ).join('');
+    filters.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-cat]');
+      if (!btn) return;
+      currentCategory = btn.dataset.cat;
+      filters.querySelectorAll('.chip').forEach((el) => {
+        const active = el === btn;
+        el.classList.toggle('active', active);
+        el.setAttribute('aria-pressed', String(active));
+      });
+      loadAnnouncements();
+    });
+
+    function progressWidth(due) {
+      if (!due || due.days == null) return 40;
+      if (due.days < 0) return 100;
+      if (due.days === 0) return 92;
+      return Math.max(12, Math.min(88, 100 - due.days * 8));
+    }
+
+    function renderCard(a) {
+      const due = deadlineMeta(a.deadline_date || a.ends_at);
+      const author = a.created_by_user || {};
+      const files = Array.isArray(a.attachments) ? a.attachments : [];
+      const cover = coverOf(a);
+      const count = a.comment_count || 0;
+      const admin = isAdmin();
+      const deadline = due ? `<div class="deadline-box"><strong>◷ ${escapeHtml(due.label.toUpperCase())}</strong><div class="bar"><span style="width:${progressWidth(due)}%"></span></div><span class="meta">${escapeHtml(formatDate(a.deadline_date || a.ends_at))}</span></div>` : '';
+      const docs = files.filter((f) => !/\.(png|jpe?g|webp|gif)$/i.test(f.file_name || ''));
+      return `<article class="card announcement cat-${escapeHtml(a.category)} ${a.is_pinned ? 'pinned' : ''}" data-post="${escapeHtml(a.id)}">
+        <div class="tag-row">
+          ${isOngoing(a) ? '<span class="badge badge-soon">Ongoing</span>' : ''}
+          <span class="badge badge-cat">${escapeHtml(categoryLabel(a.category))}</span>
+          ${a.is_pinned ? '<span class="badge badge-pin">PINNED</span>' : ''}
+        </div>
+        <div class="announcement-split">
+          <div>
+            <h3>${escapeHtml(a.title)}</h3>
+            <p class="body-text">${escapeHtml(a.content)}</p>
+            ${deadline}
+          </div>
+          ${cover ? `<img class="cover-thumb" src="${escapeHtml(cover)}" alt="">` : ''}
+        </div>
+        <div class="author-row">
+          <img src="${escapeHtml(avatarUrl(author, author.full_name))}" alt="">
+          <div>
+            <strong>${escapeHtml(author.full_name || 'Coordinator')}</strong>
+            <p class="meta">${relativeTime(a.created_at)}</p>
+          </div>
+        </div>
+        ${docs.length ? `<div class="attachments">${docs.map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">📄 ${escapeHtml(f.file_name || 'File')}</a>`).join('')}</div>` : ''}
+        <div class="card-foot">
+          ${renderReactions(a)}
+          <a class="see-all" href="/announcement.html?id=${encodeURIComponent(a.id)}">💬 ${count} comment${count === 1 ? '' : 's'} · See all ›</a>
+        </div>
+        ${admin ? `<div class="btn-row single"><a class="btn btn-ghost" href="/admin.html?edit=${encodeURIComponent(a.id)}">Edit</a></div>` : ''}
+      </article>`;
+    }
+
+    async function loadAnnouncements() {
+      const box = document.getElementById('announcementsList');
+      box.innerHTML = '<div class="card empty">Loading announcements…</div>';
+      const qs = currentCategory !== 'all' ? `?category=${encodeURIComponent(currentCategory)}` : '';
+      const { ok, data, error } = await apiJson(`/announcements${qs}`);
+      if (!ok) {
+        box.innerHTML = `<div class="card empty">${escapeHtml(error)}</div>`;
+        return;
+      }
+      if (!Array.isArray(data) || !data.length) {
+        box.innerHTML = '<div class="card empty">Wala pang anunsyo sa category na ito.</div>';
+        return;
+      }
+      box.innerHTML = data.map(renderCard).join('');
+      bindReactions(box);
+    }
+
+    loadAnnouncements();
+  </script>
+</body>
+</html>
