@@ -1,31 +1,231 @@
 <!DOCTYPE html>
 <html lang="fil">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"><title>Coordinator · TK Cam Norte</title><link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/premium.css"></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Coordinator · TK Cam Norte</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/premium.css">
+  <link rel="stylesheet" href="/css/fixes.css">
+</head>
 <body>
-<header class="topbar"><a class="brand" href="/"><div class="mark">TK</div><div class="brand-name">Coordinator<small>Manage your community</small></div></a><button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button><ul class="nav-links" id="navLinks"></ul></header>
+<header class="topbar">
+  <a class="brand" href="/"><div class="mark">TK</div><div class="brand-name">Coordinator<small>Manage your community</small></div></a>
+  <div class="header-actions" id="headerActions">
+    <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span aria-hidden="true">🔔</span><em id="notifyBadge" hidden>0</em></button>
+    <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+  </div>
+  <ul class="nav-links" id="navLinks"></ul>
+</header>
 <main class="container">
-  <section class="admin-hero"><div class="eyebrow">Good morning ☀️</div><h1>Coordinator</h1><p>Manage announcements and members from one place.</p><div class="script">Together<br>in His<br>Purpose</div></section>
-  <section class="stats-grid"><div class="stat-card"><span class="stat-icon">◈</span><div><strong id="announcementCount">—</strong><span>Announcements</span></div><b>↟</b></div><div class="stat-card"><span class="stat-icon">♧</span><div><strong id="memberCount">—</strong><span>Members</span></div><b>•</b></div></section>
-  <div class="tabs" role="tablist" aria-label="Coordinator sections"><button type="button" class="active" data-tab="compose" role="tab" aria-selected="true">✎ Compose</button><button type="button" data-tab="posts" role="tab" aria-selected="false">◈ Anunsyo</button><button type="button" data-tab="members" role="tab" aria-selected="false">♧ Members</button></div>
-  <section class="card panel" id="panel-compose"><h2 id="composeTitle">Bagong anunsyo</h2><p class="panel-lede">Create an update for TK Cam Norte members.</p><form id="announcementForm"><input type="hidden" id="editId"><div class="field"><label for="title">Title</label><input id="title" required placeholder="Announcement title"></div><div class="field"><label for="content">Content</label><textarea id="content" rows="6" required placeholder="Write your announcement..."></textarea></div><div class="form-grid"><div class="field"><label for="category">Category</label><select id="category"><option value="song_lineup">Song line-up</option><option value="deadline">Deadline</option><option value="payment">Ambag / Payment</option><option value="project">Project</option><option value="general">General</option></select></div><div class="field"><label for="deadlineDate">Deadline</label><input id="deadlineDate" type="date"></div></div><label class="check-row"><input type="checkbox" id="isPinned"> I-pin sa taas</label><div class="field upload-field"><label for="attachments">Attachments</label><label class="upload-zone" for="attachments"><span>⇧</span><strong>Add attachments</strong><small>PDF, images, documents and more · Max 8MB per file</small></label><input id="attachments" type="file" multiple hidden></div><p class="meta" id="existingFiles"></p><p class="form-error" id="formError" hidden aria-live="polite"></p><div class="btn-row admin-actions"><button class="btn" type="submit" id="saveBtn">➤ Publish Announcement</button><button class="btn btn-ghost" type="button" id="resetBtn">Clear</button></div></form></section>
-  <section class="panel" id="panel-posts" hidden><div class="panel-title-row"><div><h2>Recent Announcements</h2><p class="panel-lede">Edit or remove published updates.</p></div></div><div id="adminAnnouncementsList"></div></section>
-  <section class="panel" id="panel-members" hidden><div class="panel-title-row"><div><h2>Members</h2><p class="panel-lede">Manage coordinator and member roles.</p></div></div><div id="usersList"></div></section>
+  <section class="admin-hero"><div class="eyebrow">Good morning</div><h1>Coordinator</h1><p>Manage announcements and members from one place.</p><div class="script">Together<br>in His<br>Purpose</div></section>
+  <section class="stats-grid"><div class="stat-card"><span class="stat-icon">◈</span><div><strong id="announcementCount">—</strong><span>Announcements</span></div><b>↟</b></div><div class="stat-card"><span class="stat-icon">♣</span><div><strong id="memberCount">—</strong><span>Members</span></div><b>•</b></div></section>
+  <div class="tabs" role="tablist" aria-label="Coordinator sections">
+    <button type="button" class="active" data-tab="compose" role="tab" aria-selected="true">Compose</button>
+    <button type="button" data-tab="posts" role="tab" aria-selected="false">Anunsyo</button>
+    <button type="button" data-tab="members" role="tab" aria-selected="false">Members</button>
+  </div>
+  <section class="card panel" id="panel-compose">
+    <h2 id="composeTitle">Bagong anunsyo</h2>
+    <p class="panel-lede">Create an update for TK Cam Norte members.</p>
+    <form id="announcementForm">
+      <input type="hidden" id="editId">
+      <div class="field"><label for="title">Title</label><input id="title" required placeholder="Announcement title"></div>
+      <div class="field"><label for="content">Content</label><textarea id="content" rows="6" required placeholder="Write your announcement..."></textarea></div>
+      <div class="form-grid">
+        <div class="field"><label for="category">Category</label>
+          <select id="category">
+            <option value="song_lineup">Song line-up</option>
+            <option value="deadline">Deadline</option>
+            <option value="payment">Ambag / Payment</option>
+            <option value="project">Project</option>
+            <option value="general">General</option>
+          </select>
+        </div>
+        <div class="field"><label for="deadlineDate">Deadline</label><input id="deadlineDate" type="date"></div>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label for="startsAt">Start date</label><input id="startsAt" type="date"></div>
+        <div class="field"><label for="endsAt">End date</label><input id="endsAt" type="date"></div>
+      </div>
+      <label class="check-row"><input type="checkbox" id="isPinned"> I-pin sa taas</label>
+      <div class="field upload-field">
+        <label for="coverImage">Reference / cover image</label>
+        <input id="coverImage" type="file" accept="image/*">
+        <p class="meta" id="existingCover"></p>
+      </div>
+      <div class="field upload-field">
+        <label for="attachments">Attachments</label>
+        <label class="upload-zone" for="attachments"><span>⇧</span><strong>Add attachments</strong><small>PDF, images, documents · Max 8MB per file</small></label>
+        <input id="attachments" type="file" multiple hidden>
+      </div>
+      <p class="meta" id="existingFiles"></p>
+      <p class="form-error" id="formError" hidden aria-live="polite"></p>
+      <div class="btn-row admin-actions">
+        <button class="btn" type="submit" id="saveBtn">Publish Announcement</button>
+        <button class="btn btn-ghost" type="button" id="resetBtn">Clear</button>
+      </div>
+    </form>
+  </section>
+  <section class="panel" id="panel-posts" hidden>
+    <div class="panel-title-row"><div><h2>Recent Announcements</h2><p class="panel-lede">Edit or remove published updates.</p></div></div>
+    <div id="adminAnnouncementsList"></div>
+  </section>
+  <section class="panel" id="panel-members" hidden>
+    <div class="panel-title-row"><div><h2>Members</h2><p class="panel-lede">Promote, demote, or remove members.</p></div></div>
+    <div id="usersList"></div>
+  </section>
 </main>
-<nav class="mobile-bottom-nav" aria-label="Admin navigation"><a href="/"><span class="nav-icon">⌂</span><span>Home</span></a><a class="active" href="#panel-compose"><span class="nav-icon">✎</span><span>Compose</span></a><a href="#panel-posts" onclick="document.querySelector('[data-tab=posts]')?.click()"><span class="nav-icon">◈</span><span>Anunsyo</span></a><a href="#panel-members" onclick="document.querySelector('[data-tab=members]')?.click()"><span class="nav-icon">♧</span><span>Members</span></a><a href="/profile.html"><span class="nav-icon">♙</span><span>Profile</span></a></nav>
+<nav class="mobile-bottom-nav" aria-label="Admin navigation">
+  <a href="/"><span class="nav-icon">⌂</span><span>Home</span></a>
+  <a class="active" href="#panel-compose"><span class="nav-icon">✎</span><span>Compose</span></a>
+  <a href="#panel-posts"><span class="nav-icon">◈</span><span>Anunsyo</span></a>
+  <a href="#panel-members"><span class="nav-icon">♣</span><span>Members</span></a>
+  <a href="/profile.html"><span class="nav-icon">♙</span><span>Profile</span></a>
+</nav>
 <style>
-.admin-hero{position:relative;overflow:hidden;margin:0 -14px 14px;padding:28px 20px 25px;background:linear-gradient(145deg,#eef5ff,#e5f0ff 62%,#fff5cc);border-radius:0 0 30px 30px}.admin-hero .eyebrow{font-size:15px;font-weight:800}.admin-hero h1{font-size:46px;line-height:1;margin:4px 0 11px}.admin-hero p{max-width:65%;font-size:14px;color:#49658f}.admin-hero .script{position:absolute;right:20px;top:62px;font:italic 700 22px/1.02 cursive;color:#0b4fbd;transform:rotate(-7deg)}.admin-hero .script:after{content:"";display:block;width:62px;height:3px;background:#ffc629;margin:9px 0 0 8px;transform:rotate(-8deg);border-radius:9px}.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}.stat-card{display:flex;align-items:center;gap:10px;padding:14px;border:1px solid #dce8f8;border-radius:20px;background:#fff;box-shadow:0 10px 28px rgba(16,45,115,.07)}.stat-icon{width:43px;height:43px;display:grid;place-items:center;border-radius:15px;background:#edf4ff;color:#0b4fbd;font-size:22px}.stat-card div{min-width:0}.stat-card strong{display:block;font:800 30px/1 Outfit;color:#102d73}.stat-card span{display:block;font-size:11px;color:#6379a5;margin-top:3px}.stat-card>b{margin-left:auto;color:#ffc629}.panel-lede{margin:-4px 0 18px;color:#6379a5;font-size:13px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.upload-zone{min-height:105px!important;display:flex!important;flex-direction:column!important;align-items:center;justify-content:center;gap:3px;padding:15px;border:1.5px dashed #9fc1f4;border-radius:18px;background:#f7fbff;color:#0b4fbd;cursor:pointer;text-align:center}.upload-zone span{font-size:30px}.upload-zone strong{font-size:14px}.upload-zone small{font-size:10px;color:#6379a5}.admin-actions{display:flex;flex-direction:column}.admin-actions .btn{width:100%}.panel-title-row{margin-bottom:14px}.panel-title-row h2{font-size:25px}.admin-item,.user-row{background:#fff}
-@media(max-width:380px){.admin-hero h1{font-size:40px}.stats-grid{gap:7px}.stat-card{padding:11px}.stat-card strong{font-size:26px}.form-grid{grid-template-columns:1fr}}
-@media(min-width:700px){.admin-hero{margin-left:-24px;margin-right:-24px;padding-left:30px}.admin-actions{flex-direction:row}.admin-actions .btn{width:auto}.mobile-bottom-nav{display:none}}
+.admin-hero{position:relative;overflow:hidden;margin:0 -14px 14px;padding:28px 20px 25px;background:linear-gradient(145deg,#eef5ff,#e5f0ff 62%,#fff5cc);border-radius:0 0 30px 30px}
+.admin-hero .eyebrow{font-size:15px;font-weight:800}.admin-hero h1{font-size:46px;line-height:1;margin:4px 0 11px}.admin-hero p{max-width:65%;font-size:14px;color:#49658f}
+.admin-hero .script{position:absolute;right:20px;top:62px;font:italic 700 22px/1.02 cursive;color:#0b4fbd;transform:rotate(-7deg)}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{display:flex;align-items:center;gap:10px;padding:14px;border:1px solid #dce8f8;border-radius:20px;background:#fff}
+.stat-card strong{display:block;font:800 30px/1 Outfit,sans-serif;color:#102d73}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.upload-zone{min-height:105px!important;display:flex!important;flex-direction:column!important;align-items:center;justify-content:center;gap:3px;padding:15px;border:1.5px dashed #9fc1f4;border-radius:18px;background:#f7fbff;color:#0b4fbd;cursor:pointer;text-align:center}
+@media(max-width:380px){.form-grid{grid-template-columns:1fr}.admin-hero h1{font-size:40px}}
 </style>
 <script type="module">
-import{requireAuth,initShell,apiJson,uploadFiles,escapeHtml,formatDate,categoryLabel,showToast,setFormError,deadlineMeta}from'/js/common.js';
-const user=await requireAuth('admin');if(!user)throw new Error('auth');initShell(user);const params=new URLSearchParams(location.search);
-const tabs=document.querySelectorAll('.tabs button');tabs.forEach(btn=>btn.onclick=()=>{tabs.forEach(b=>{const a=b===btn;b.classList.toggle('active',a);b.setAttribute('aria-selected',String(a))});document.querySelectorAll('.panel').forEach(p=>p.hidden=p.id!==`panel-${btn.dataset.tab}`);if(btn.dataset.tab==='posts')loadPosts();if(btn.dataset.tab==='members')loadUsers()});
-function resetForm(){document.getElementById('announcementForm').reset();document.getElementById('editId').value='';document.getElementById('composeTitle').textContent='Bagong anunsyo';document.getElementById('saveBtn').textContent='➤ Publish Announcement';document.getElementById('existingFiles').textContent='';setFormError('formError','')};document.getElementById('resetBtn').onclick=resetForm;
-async function loadOne(id){const{ok,data,error}=await apiJson(`/announcements?id=${encodeURIComponent(id)}`);if(!ok)return showToast(error,'error');document.getElementById('editId').value=data.id;document.getElementById('title').value=data.title;document.getElementById('content').value=data.content;document.getElementById('category').value=data.category;document.getElementById('deadlineDate').value=data.deadline_date||'';document.getElementById('isPinned').checked=Boolean(data.is_pinned);document.getElementById('composeTitle').textContent='Edit announcement';document.getElementById('saveBtn').textContent='✓ Save changes';document.getElementById('existingFiles').textContent=(data.attachments||[]).length?`Current files: ${(data.attachments||[]).map(f=>f.file_name).join(', ')}. New upload replaces them.`:'Walang existing file.'}if(params.get('edit'))loadOne(params.get('edit'));
-document.getElementById('announcementForm').addEventListener('submit',async e=>{e.preventDefault();const editId=document.getElementById('editId').value,files=document.getElementById('attachments').files;let attachments;if(files.length){try{attachments=await uploadFiles(files,'announcement-attachments')}catch(err){return setFormError('formError',err.message)}}const payload={title:document.getElementById('title').value.trim(),content:document.getElementById('content').value.trim(),category:document.getElementById('category').value,deadlineDate:document.getElementById('deadlineDate').value||null,isPinned:document.getElementById('isPinned').checked};if(attachments)payload.attachments=attachments;const{ok,error}=editId?await apiJson(`/announcements/${encodeURIComponent(editId)}`,{method:'PUT',body:JSON.stringify(payload)}):await apiJson('/announcements',{method:'POST',body:JSON.stringify(payload)});if(!ok)return setFormError('formError',error);showToast(editId?'Na-update ang anunsyo.':'Published.','success');resetForm();history.replaceState({},'', '/admin.html');});
-async function loadPosts(){const box=document.getElementById('adminAnnouncementsList');box.innerHTML='<div class="card empty">Loading announcements…</div>';const{ok,data,error}=await apiJson('/announcements');if(!ok){box.innerHTML=`<div class="card">${escapeHtml(error)}</div>`;return}if(!Array.isArray(data)||!data.length){box.innerHTML='<div class="card empty">Wala pang anunsyo.</div>';return}box.innerHTML=data.map(a=>{const due=deadlineMeta(a.deadline_date);return `<article class="card admin-item"><div><strong>${escapeHtml(a.title)}</strong><p class="meta">${escapeHtml(categoryLabel(a.category))} · ${formatDate(a.created_at,true)} ${due?'· '+escapeHtml(due.label):''}</p></div><div class="btn-row"><button class="btn btn-ghost" data-edit="${escapeHtml(a.id)}">Edit</button><button class="btn btn-danger" data-del="${escapeHtml(a.id)}">Delete</button></div></article>`}).join('');box.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{tabs[0].click();loadOne(b.dataset.edit)});box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this announcement permanently?'))return;b.disabled=true;const{ok,error}=await apiJson(`/announcements/${encodeURIComponent(b.dataset.del)}`,{method:'DELETE'});if(!ok){b.disabled=false;return showToast(error,'error')}showToast('Deleted.','success');loadPosts()})}
-async function loadUsers(){const box=document.getElementById('usersList');box.innerHTML='<div class="card empty">Loading members…</div>';const{ok,data,error}=await apiJson('/users/all');if(!ok){box.innerHTML=`<div class="card">${escapeHtml(error)}</div>`;return}const users=Array.isArray(data)?data:[];document.getElementById('memberCount').textContent=users.length;box.innerHTML=users.map(u=>`<article class="card user-row"><div><strong>${escapeHtml(u.full_name)}</strong><p class="meta">@${escapeHtml(u.username)} · ${u.role==='admin'?'Coordinator':'Member'}</p></div>${u.role==='admin'?`<button class="btn btn-ghost" data-role="user" data-id="${escapeHtml(u.id)}">Demote</button>`:`<button class="btn btn-success" data-role="admin" data-id="${escapeHtml(u.id)}">Promote</button>`}</article>`).join('');box.querySelectorAll('[data-role]').forEach(b=>b.onclick=async()=>{const next=b.dataset.role;if(!confirm(next==='admin'?'Promote to coordinator?':'Demote to member? They must login again.'))return;b.disabled=true;const{ok,error}=await apiJson('/users/promote',{method:'POST',body:JSON.stringify({userId:b.dataset.id,role:next})});if(!ok){b.disabled=false;return showToast(error,'error')}showToast('Role updated. Mag-login ulit ang member.','success');loadUsers()})}
-(async()=>{const{ok,data}=await apiJson('/announcements');if(ok&&Array.isArray(data))document.getElementById('announcementCount').textContent=data.length})();
+import {requireAuth,initShell,apiJson,uploadFiles,escapeHtml,formatDate,categoryLabel,showToast,setFormError,deadlineMeta} from '/js/common.js';
+const user = await requireAuth('admin'); if (!user) throw new Error('auth'); initShell(user);
+const params = new URLSearchParams(location.search);
+const tabs = document.querySelectorAll('.tabs button');
+tabs.forEach((btn) => btn.onclick = () => {
+  tabs.forEach((b) => { const a = b === btn; b.classList.toggle('active', a); b.setAttribute('aria-selected', String(a)); });
+  document.querySelectorAll('.panel').forEach((p) => p.hidden = p.id !== `panel-${btn.dataset.tab}`);
+  if (btn.dataset.tab === 'posts') loadPosts();
+  if (btn.dataset.tab === 'members') loadUsers();
+});
+document.querySelectorAll('.mobile-bottom-nav a[href^="#panel-"]').forEach((a) => {
+  a.onclick = (e) => {
+    e.preventDefault();
+    const tab = a.getAttribute('href').replace('#panel-', '');
+    document.querySelector(`[data-tab="${tab}"]`)?.click();
+  };
+});
+function resetForm() {
+  document.getElementById('announcementForm').reset();
+  document.getElementById('editId').value = '';
+  document.getElementById('composeTitle').textContent = 'Bagong anunsyo';
+  document.getElementById('saveBtn').textContent = 'Publish Announcement';
+  document.getElementById('existingFiles').textContent = '';
+  document.getElementById('existingCover').textContent = '';
+  setFormError('formError', '');
+}
+document.getElementById('resetBtn').onclick = resetForm;
+async function loadOne(id) {
+  const { ok, data, error } = await apiJson(`/announcements?id=${encodeURIComponent(id)}`);
+  if (!ok) return showToast(error, 'error');
+  document.getElementById('editId').value = data.id;
+  document.getElementById('title').value = data.title;
+  document.getElementById('content').value = data.content;
+  document.getElementById('category').value = data.category;
+  document.getElementById('deadlineDate').value = data.deadline_date || '';
+  document.getElementById('startsAt').value = data.starts_at || '';
+  document.getElementById('endsAt').value = data.ends_at || '';
+  document.getElementById('isPinned').checked = Boolean(data.is_pinned);
+  document.getElementById('composeTitle').textContent = 'Edit announcement';
+  document.getElementById('saveBtn').textContent = 'Save changes';
+  document.getElementById('existingCover').textContent = data.cover_image_url ? 'May existing cover image. New upload replaces it.' : '';
+  document.getElementById('existingFiles').textContent = (data.attachments || []).length
+    ? `Current files: ${(data.attachments || []).map((f) => f.file_name).join(', ')}. New upload replaces them.`
+    : 'Walang existing file.';
+}
+if (params.get('edit')) loadOne(params.get('edit'));
+document.getElementById('announcementForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const editId = document.getElementById('editId').value;
+  const files = document.getElementById('attachments').files;
+  const cover = document.getElementById('coverImage').files[0];
+  let attachments;
+  let coverImageUrl;
+  try {
+    if (files.length) attachments = await uploadFiles(files, 'announcement-attachments');
+    if (cover) {
+      const uploaded = await uploadFiles([cover], 'announcement-attachments');
+      coverImageUrl = uploaded[0]?.fileUrl;
+    }
+  } catch (err) {
+    return setFormError('formError', err.message);
+  }
+  const payload = {
+    title: document.getElementById('title').value.trim(),
+    content: document.getElementById('content').value.trim(),
+    category: document.getElementById('category').value,
+    deadlineDate: document.getElementById('deadlineDate').value || null,
+    startsAt: document.getElementById('startsAt').value || null,
+    endsAt: document.getElementById('endsAt').value || null,
+    isPinned: document.getElementById('isPinned').checked
+  };
+  if (attachments) payload.attachments = attachments;
+  if (coverImageUrl) payload.coverImageUrl = coverImageUrl;
+  const { ok, error } = editId
+    ? await apiJson(`/announcements/${encodeURIComponent(editId)}`, { method: 'PUT', body: JSON.stringify(payload) })
+    : await apiJson('/announcements', { method: 'POST', body: JSON.stringify(payload) });
+  if (!ok) return setFormError('formError', error);
+  showToast(editId ? 'Na-update ang anunsyo.' : 'Published.', 'success');
+  resetForm();
+  history.replaceState({}, '', '/admin.html');
+});
+async function loadPosts() {
+  const box = document.getElementById('adminAnnouncementsList');
+  box.innerHTML = '<div class="card empty">Loading announcements…</div>';
+  const { ok, data, error } = await apiJson('/announcements');
+  if (!ok) { box.innerHTML = `<div class="card">${escapeHtml(error)}</div>`; return; }
+  if (!data?.length) { box.innerHTML = '<div class="card empty">Wala pang anunsyo.</div>'; return; }
+  box.innerHTML = data.map((a) => {
+    const due = deadlineMeta(a.deadline_date || a.ends_at);
+    return `<article class="card admin-item"><div><strong>${escapeHtml(a.title)}</strong><p class="meta">${escapeHtml(categoryLabel(a.category))} · ${formatDate(a.created_at, true)} ${due ? '· ' + escapeHtml(due.label) : ''}</p></div><div class="btn-row"><button class="btn btn-ghost" data-edit="${escapeHtml(a.id)}">Edit</button><button class="btn btn-danger" data-del="${escapeHtml(a.id)}">Delete</button></div></article>`;
+  }).join('');
+  box.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => { tabs[0].click(); loadOne(b.dataset.edit); });
+  box.querySelectorAll('[data-del]').forEach((b) => b.onclick = async () => {
+    if (!confirm('Delete this announcement permanently?')) return;
+    b.disabled = true;
+    const { ok, error } = await apiJson(`/announcements/${encodeURIComponent(b.dataset.del)}`, { method: 'DELETE' });
+    if (!ok) { b.disabled = false; return showToast(error, 'error'); }
+    showToast('Deleted.', 'success');
+    loadPosts();
+  });
+}
+async function loadUsers() {
+  const box = document.getElementById('usersList');
+  box.innerHTML = '<div class="card empty">Loading members…</div>';
+  const { ok, data, error } = await apiJson('/users/all');
+  if (!ok) { box.innerHTML = `<div class="card">${escapeHtml(error)}</div>`; return; }
+  const users = Array.isArray(data) ? data : [];
+  document.getElementById('memberCount').textContent = users.length;
+  box.innerHTML = users.map((u) => `<article class="card user-row"><div><strong>${escapeHtml(u.full_name)}</strong><p class="meta">@${escapeHtml(u.username)} · ${u.role === 'admin' ? 'Coordinator' : 'Member'}</p></div><div class="btn-row">${u.role === 'admin' ? `<button class="btn btn-ghost" data-role="user" data-id="${escapeHtml(u.id)}">Demote</button>` : `<button class="btn btn-success" data-role="admin" data-id="${escapeHtml(u.id)}">Promote</button>`}<button class="btn btn-danger" data-del-user="${escapeHtml(u.id)}">Delete</button></div></article>`).join('');
+  box.querySelectorAll('[data-role]').forEach((b) => b.onclick = async () => {
+    const next = b.dataset.role;
+    if (!confirm(next === 'admin' ? 'Promote to coordinator?' : 'Demote to member? They must login again.')) return;
+    b.disabled = true;
+    const { ok, error } = await apiJson('/users/promote', { method: 'POST', body: JSON.stringify({ userId: b.dataset.id, role: next }) });
+    if (!ok) { b.disabled = false; return showToast(error, 'error'); }
+    showToast('Role updated. Mag-login ulit ang member.', 'success');
+    loadUsers();
+  });
+  box.querySelectorAll('[data-del-user]').forEach((b) => b.onclick = async () => {
+    if (!confirm('Delete this member permanently?')) return;
+    b.disabled = true;
+    const { ok, error } = await apiJson('/users/delete', { method: 'POST', body: JSON.stringify({ userId: b.dataset.delUser }) });
+    if (!ok) { b.disabled = false; return showToast(error, 'error'); }
+    showToast('Member deleted.', 'success');
+    loadUsers();
+  });
+}
+(async () => {
+  const { ok, data } = await apiJson('/announcements');
+  if (ok && Array.isArray(data)) document.getElementById('announcementCount').textContent = data.length;
+})();
 </script>
-</body></html>
+</body>
+</html>
