@@ -1,5 +1,5 @@
 import busboy from 'busboy';
-import { requireUser, ALLOWED_BUCKETS, ALLOWED_MIME, MAX_FILE_BYTES } from './_lib/auth.js';
+import { requireUser, requireAdmin, ALLOWED_BUCKETS, ALLOWED_MIME, MAX_FILE_BYTES } from './_lib/auth.js';
 import { supabase } from './_lib/supabase.js';
 
 export const config = { api: { bodyParser: false } };
@@ -47,6 +47,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid bucket' });
   }
 
+  // Announcement files are coordinator-managed content. Do not rely on the UI
+  // to enforce this because authenticated members can call the API directly.
+  if (bucket === 'announcement-attachments' && !requireAdmin(req, res)) return;
+
   try {
     const { files, truncated } = await readUpload(req);
     if (truncated) return res.status(400).json({ error: 'File too large (max 8MB).' });
@@ -55,8 +59,10 @@ export default async function handler(req, res) {
     const uploaded = [];
     for (const file of files) {
       if (!file.filename) continue;
-      if (file.mimeType && !ALLOWED_MIME.includes(file.mimeType) && !file.mimeType.startsWith('image/')) {
-        return res.status(400).json({ error: `Hindi allowed ang file type: ${file.mimeType}` });
+      // Only explicitly allow the MIME types used by the application.
+      // The old image/* wildcard also admitted SVG, which can contain scripts.
+      if (!ALLOWED_MIME.includes(file.mimeType)) {
+        return res.status(400).json({ error: `Hindi allowed ang file type: ${file.mimeType || 'unknown'}` });
       }
       const fileExt = (file.filename.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '');
       const uniqueName = `${session.userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${fileExt}`;
@@ -72,6 +78,7 @@ export default async function handler(req, res) {
       });
     }
 
+    if (!uploaded.length) return res.status(400).json({ error: 'No valid file received.' });
     res.status(200).json({ files: uploaded });
   } catch (err) {
     res.status(500).json({ error: err.message || 'Upload failed' });
