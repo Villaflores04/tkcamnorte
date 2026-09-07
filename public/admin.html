@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Coordinator · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/premium.css">
 </head>
 <body>
   <header class="topbar">
@@ -12,7 +13,7 @@
       <div class="mark">TK</div>
       <div class="brand-name">Coordinator desk<small>Create, edit, delete, members</small></div>
     </a>
-    <button class="hamburger" id="hamburger" type="button" aria-label="Menu">☰</button>
+    <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
     <ul class="nav-links" id="navLinks"></ul>
   </header>
   <main class="container">
@@ -20,10 +21,10 @@
       <h1>Coordinator</h1>
       <p>CRUD para sa anunsyo at roles ng members.</p>
     </div>
-    <div class="tabs">
-      <button type="button" class="active" data-tab="compose">Compose</button>
-      <button type="button" data-tab="posts">Anunsyo</button>
-      <button type="button" data-tab="members">Members</button>
+    <div class="tabs" role="tablist" aria-label="Coordinator sections">
+      <button type="button" class="active" data-tab="compose" role="tab" aria-selected="true">Compose</button>
+      <button type="button" data-tab="posts" role="tab" aria-selected="false">Anunsyo</button>
+      <button type="button" data-tab="members" role="tab" aria-selected="false">Members</button>
     </div>
     <section class="card panel" id="panel-compose">
       <h2 id="composeTitle">Bagong anunsyo</h2>
@@ -57,7 +58,7 @@
           <input id="attachments" type="file" multiple>
         </div>
         <p class="meta" id="existingFiles"></p>
-        <p class="form-error" id="formError" hidden></p>
+        <p class="form-error" id="formError" hidden aria-live="polite"></p>
         <div class="btn-row">
           <button class="btn btn-yellow" type="submit" id="saveBtn">Publish</button>
           <button class="btn btn-ghost" type="button" id="resetBtn">Clear</button>
@@ -84,7 +85,11 @@
     const params = new URLSearchParams(location.search);
     document.querySelectorAll('.tabs button').forEach((btn) => {
       btn.onclick = () => {
-        document.querySelectorAll('.tabs button').forEach((b) => b.classList.toggle('active', b === btn));
+        document.querySelectorAll('.tabs button').forEach((b) => {
+          const active = b === btn;
+          b.classList.toggle('active', active);
+          b.setAttribute('aria-selected', active);
+        });
         document.querySelectorAll('.panel').forEach((p) => { p.hidden = p.id !== `panel-${btn.dataset.tab}`; });
         if (btn.dataset.tab === 'posts') loadPosts();
         if (btn.dataset.tab === 'members') loadUsers();
@@ -146,12 +151,13 @@
 
     async function loadPosts() {
       const box = document.getElementById('adminAnnouncementsList');
+      box.innerHTML = '<div class="card empty">Loading announcements…</div>';
       const { ok, data, error } = await apiJson('/announcements');
       if (!ok) { box.innerHTML = `<div class="card">${escapeHtml(error)}</div>`; return; }
       if (!data.length) { box.innerHTML = '<div class="card empty">Wala pang anunsyo.</div>'; return; }
       box.innerHTML = data.map((a) => {
         const due = deadlineMeta(a.deadline_date);
-        return `<article class="card admin-item"><div><strong>${escapeHtml(a.title)}</strong><p class="meta">${escapeHtml(categoryLabel(a.category))} · ${formatDate(a.created_at, true)} ${due ? '· ' + due.label : ''}</p></div><div class="btn-row"><button class="btn btn-ghost" data-edit="${a.id}">Edit</button><button class="btn btn-danger" data-del="${a.id}">Delete</button></div></article>`;
+        return `<article class="card admin-item"><div><strong>${escapeHtml(a.title)}</strong><p class="meta">${escapeHtml(categoryLabel(a.category))} · ${formatDate(a.created_at, true)} ${due ? '· ' + escapeHtml(due.label) : ''}</p></div><div class="btn-row"><button class="btn btn-ghost" data-edit="${a.id}">Edit</button><button class="btn btn-danger" data-del="${a.id}">Delete</button></div></article>`;
       }).join('');
       box.querySelectorAll('[data-edit]').forEach((btn) => {
         btn.onclick = () => { document.querySelector('[data-tab="compose"]').click(); loadOne(btn.dataset.edit); };
@@ -172,6 +178,7 @@
 
     async function loadUsers() {
       const box = document.getElementById('usersList');
+      box.innerHTML = '<div class="card empty">Loading members…</div>';
       const { ok, data, error } = await apiJson('/users/all');
       if (!ok) { box.innerHTML = `<div class="card">${escapeHtml(error)}</div>`; return; }
       box.innerHTML = data.map((u) => `
