@@ -51,7 +51,13 @@ export async function apiFetch(endpoint, options = {}) {
   }
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+  } catch {
+    throw new Error('Hindi makakonekta sa server. Suriin ang internet connection at subukan muli.');
+  }
+
   if (response.status === 401) {
     clearSession();
     if (!location.pathname.endsWith('/login.html') && !location.pathname.endsWith('/register.html')) {
@@ -63,16 +69,20 @@ export async function apiFetch(endpoint, options = {}) {
 }
 
 export async function apiJson(endpoint, options = {}) {
-  const res = await apiFetch(endpoint, options);
-  if (!res) return { ok: false, status: 401, data: null, error: 'Unauthorized' };
-  let data = null;
-  try { data = await res.json(); } catch { data = null; }
-  return {
-    ok: res.ok,
-    status: res.status,
-    data,
-    error: data?.error || (!res.ok ? 'Request failed' : null)
-  };
+  try {
+    const res = await apiFetch(endpoint, options);
+    if (!res) return { ok: false, status: 401, data: null, error: 'Session expired. Mag-login muli.' };
+    let data = null;
+    try { data = await res.json(); } catch { data = null; }
+    return {
+      ok: res.ok,
+      status: res.status,
+      data,
+      error: data?.error || (!res.ok ? 'Request failed' : null)
+    };
+  } catch (err) {
+    return { ok: false, status: 0, data: null, error: err.message || 'Network error' };
+  }
 }
 
 export async function refreshSession() {
@@ -174,15 +184,20 @@ export async function uploadFiles(fileList, bucket) {
     body: formData,
     headers: {}
   });
-  if (!res) throw new Error('Unauthorized');
+  if (!res) throw new Error('Session expired. Mag-login muli.');
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Upload failed');
   return data.files || [];
 }
 
+let shellInitialized = false;
+let shellCleanup = null;
+
 export function initShell(user) {
   const hamburger = document.getElementById('hamburger');
   const navLinks = document.getElementById('navLinks');
+  if (!hamburger || !navLinks) return;
+
   let scrim = document.getElementById('navScrim');
   if (!scrim) {
     scrim = document.createElement('div');
@@ -190,49 +205,58 @@ export function initShell(user) {
     scrim.className = 'nav-scrim';
     document.body.appendChild(scrim);
   }
+
+  if (shellInitialized && shellCleanup) shellCleanup();
+
   const closeNav = () => {
-    navLinks?.classList.remove('show');
+    navLinks.classList.remove('show');
     scrim.classList.remove('show');
+    hamburger.setAttribute('aria-expanded', 'false');
   };
   const openNav = () => {
-    navLinks?.classList.add('show');
+    navLinks.classList.add('show');
     scrim.classList.add('show');
+    hamburger.setAttribute('aria-expanded', 'true');
   };
-  if (hamburger && navLinks) {
-    hamburger.addEventListener('click', () => {
-      navLinks.classList.contains('show') ? closeNav() : openNav();
-    });
-    scrim.addEventListener('click', closeNav);
-  }
-  if (!navLinks) return;
-  if (user) {
-    navLinks.innerHTML = `
-      <li class="nav-user">
-        <strong>${escapeHtml(user.fullName || user.username)}</strong>
-        <span>${user.role === 'admin' ? 'Coordinator' : 'Member'}</span>
-      </li>
-      <li><a href="/">Anunsyo</a></li>
-      <li><a href="/profile.html">Profile</a></li>
-      ${user.role === 'admin' ? '<li><a href="/admin.html">Coordinator</a></li>' : ''}
-      <li><a href="#" id="logoutBtn">Logout</a></li>
-    `;
-    document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      clearSession();
-      location.href = '/login.html';
-    });
-  } else {
-    navLinks.innerHTML = `
-      <li><a href="/login.html">Login</a></li>
-      <li><a href="/register.html">Register</a></li>
-    `;
-  }
+  const toggleNav = () => navLinks.classList.contains('show') ? closeNav() : openNav();
+  const onKeydown = (e) => { if (e.key === 'Escape') closeNav(); };
+
+  hamburger.addEventListener('click', toggleNav);
+  scrim.addEventListener('click', closeNav);
+  document.addEventListener('keydown', onKeydown);
+  shellCleanup = () => {
+    hamburger.removeEventListener('click', toggleNav);
+    scrim.removeEventListener('click', closeNav);
+    document.removeEventListener('keydown', onKeydown);
+  };
+  shellInitialized = true;
+
+  navLinks.innerHTML = user ? `
+    <li class="nav-user">
+      <strong>${escapeHtml(user.fullName || user.username)}</strong>
+      <span>${user.role === 'admin' ? 'Coordinator' : 'Member'}</span>
+    </li>
+    <li><a href="/">Anunsyo</a></li>
+    <li><a href="/profile.html">Profile</a></li>
+    ${user.role === 'admin' ? '<li><a href="/admin.html">Coordinator</a></li>' : ''}
+    <li><a href="#" id="logoutBtn">Logout</a></li>
+  ` : `
+    <li><a href="/login.html">Login</a></li>
+    <li><a href="/register.html">Register</a></li>
+  `;
+
+  document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    clearSession();
+    closeNav();
+    location.href = '/login.html';
+  });
 }
 
 export function renderReactions(announcement) {
   const rx = announcement.reactions || { amen: 0, heart: 0, clap: 0, mine: null };
   const btn = (type, icon) => `
-    <button type="button" class="rx-btn ${rx.mine === type ? 'active' : ''}" data-rx="${type}" data-id="${announcement.id}">
+    <button type="button" class="rx-btn ${rx.mine === type ? 'active' : ''}" data-rx="${type}" data-id="${announcement.id}" aria-pressed="${rx.mine === type}" aria-label="${type} reaction">
       <span>${icon}</span><em>${rx[type] || 0}</em>
     </button>`;
   return `
@@ -243,22 +267,36 @@ export function renderReactions(announcement) {
     </div>`;
 }
 
+const pendingReactions = new Set();
+
 export async function toggleReaction(announcementId, type, rowEl) {
-  const { ok, data, error } = await apiJson('/reactions', {
-    method: 'POST',
-    body: JSON.stringify({ announcementId, type })
-  });
-  if (!ok) {
-    showToast(error || 'Hindi na-save ang reaction. I-run ang schema.sql kung wala pang table.', 'error');
-    return;
-  }
-  if (rowEl) {
-    rowEl.querySelectorAll('.rx-btn').forEach((btn) => {
-      const t = btn.dataset.rx;
-      btn.classList.toggle('active', data.mine === t);
-      const em = btn.querySelector('em');
-      if (em) em.textContent = data[t] || 0;
+  const key = `${announcementId}:${type}`;
+  if (pendingReactions.has(key)) return;
+  pendingReactions.add(key);
+  const button = rowEl?.querySelector(`.rx-btn[data-rx="${CSS.escape(type)}"]`);
+  if (button) button.disabled = true;
+  try {
+    const { ok, data, error } = await apiJson('/reactions', {
+      method: 'POST',
+      body: JSON.stringify({ announcementId, type })
     });
+    if (!ok) {
+      showToast(error || 'Hindi na-save ang reaction.', 'error');
+      return;
+    }
+    if (rowEl) {
+      rowEl.querySelectorAll('.rx-btn').forEach((btn) => {
+        const t = btn.dataset.rx;
+        const active = data.mine === t;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-pressed', String(active));
+        const em = btn.querySelector('em');
+        if (em) em.textContent = data[t] || 0;
+      });
+    }
+  } finally {
+    pendingReactions.delete(key);
+    if (button) button.disabled = false;
   }
 }
 
