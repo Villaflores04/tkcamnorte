@@ -42,8 +42,8 @@ export default async function handler(req, res) {
 
   if (req.method === 'PUT') {
     if (!requireAdmin(req, res)) return;
-    const { title, content, category, deadlineDate, isPinned, attachments } = req.body || {};
-    const updates = {};
+    const { title, content, category, deadlineDate, startsAt, endsAt, isPinned, attachments, coverImageUrl } = req.body || {};
+    const updates = { updated_by: session.userId, updated_at: new Date().toISOString() };
     if (title) updates.title = String(title).trim();
     if (content) updates.content = String(content).trim();
     if (category) {
@@ -51,7 +51,10 @@ export default async function handler(req, res) {
       updates.category = category;
     }
     if (deadlineDate !== undefined) updates.deadline_date = deadlineDate || null;
+    if (startsAt !== undefined) updates.starts_at = startsAt || null;
+    if (endsAt !== undefined) updates.ends_at = endsAt || null;
     if (isPinned !== undefined) updates.is_pinned = Boolean(isPinned);
+    if (coverImageUrl !== undefined) updates.cover_image_url = coverImageUrl || null;
 
     const { error: updateError } = await supabase.from('announcements').update(updates).eq('id', id);
     if (updateError) return res.status(500).json({ error: updateError.message });
