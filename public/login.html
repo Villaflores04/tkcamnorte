@@ -7,66 +7,46 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/premium.css">
 </head>
-<body>
+<body class="auth-page">
   <main class="auth-wrap">
-    <div class="card auth-card">
-      <div class="brand">
-        <div class="mark">TK</div>
+    <div class="auth-orbit auth-orbit-a"></div><div class="auth-orbit auth-orbit-b"></div>
+    <div class="auth-card">
+      <div class="brand auth-brand">
+        <div class="mark mark-large" aria-hidden="true"><span>TK</span><b>✦</b></div>
         <div class="brand-name">Teatro Kristiano<small>Camarines Norte</small></div>
       </div>
-      <h1>Login</h1>
-      <p class="lede">Members at coordinators ng TK Cam Norte.</p>
-      <form id="loginForm">
+      <div class="auth-heading"><h1>Welcome back</h1><p>Stay connected with announcements, activities, and updates from TK Cam Norte.</p></div>
+      <form id="loginForm" class="auth-form">
         <div class="field">
           <label for="username">Username</label>
-          <input id="username" autocomplete="username" required>
+          <div class="input-shell"><span class="input-icon" aria-hidden="true">♙</span><input id="username" autocomplete="username" required placeholder="Enter your username"></div>
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <div class="password-wrap">
-            <input id="password" type="password" autocomplete="current-password" required>
-            <button type="button" data-toggle="password">Show</button>
-          </div>
+          <div class="password-wrap input-shell"><span class="input-icon" aria-hidden="true">▣</span><input id="password" type="password" autocomplete="current-password" required placeholder="Enter your password"><button type="button" data-toggle="password" aria-label="Show password">◉</button></div>
         </div>
         <p class="form-error" id="formError" hidden aria-live="polite"></p>
-        <button class="btn" type="submit" id="submitBtn">Login</button>
+        <button class="btn auth-submit" type="submit" id="submitBtn"><span>Login</span><b aria-hidden="true">→</b></button>
       </form>
-      <p class="meta auth-foot">Wala pang account? <a href="/register.html">Magrehistro</a></p>
+      <p class="meta auth-foot">Wala pang account?</p>
+      <a class="register-link" href="/register.html">Magrehistro <span>→</span></a>
     </div>
   </main>
   <script type="module">
     import { setToken, setUser, apiJson, redirectBasedOnRole, getToken, refreshSession, setFormError } from '/js/common.js';
-    if (getToken()) {
-      const user = await refreshSession();
-      if (user) redirectBasedOnRole(user.role);
-    }
+    if (getToken()) { const user = await refreshSession(); if (user) redirectBasedOnRole(user.role); }
     document.querySelector('[data-toggle="password"]').onclick = () => {
-      const input = document.getElementById('password');
-      const button = document.querySelector('[data-toggle="password"]');
-      const show = input.type === 'password';
-      input.type = show ? 'text' : 'password';
-      button.textContent = show ? 'Hide' : 'Show';
-      button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      const input = document.getElementById('password'), button = document.querySelector('[data-toggle="password"]');
+      const show = input.type === 'password'; input.type = show ? 'text' : 'password';
+      button.textContent = show ? '◌' : '◉'; button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
     };
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      setFormError('formError', '');
-      const btn = document.getElementById('submitBtn');
-      btn.disabled = true;
-      btn.textContent = 'Nagla-login...';
-      const { ok, data, error } = await apiJson('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          username: document.getElementById('username').value.trim(),
-          password: document.getElementById('password').value
-        })
-      });
-      btn.disabled = false;
-      btn.textContent = 'Login';
+      e.preventDefault(); setFormError('formError', ''); const btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.querySelector('span').textContent = 'Nagla-login...';
+      const { ok, data, error } = await apiJson('/auth/login', { method:'POST', body:JSON.stringify({ username:document.getElementById('username').value.trim(), password:document.getElementById('password').value }) });
+      btn.disabled = false; btn.querySelector('span').textContent = 'Login';
       if (!ok) { setFormError('formError', error || 'Mali ang username o password.'); return; }
-      setToken(data.token);
-      setUser(data.user);
-      redirectBasedOnRole(data.user.role);
+      setToken(data.token); setUser(data.user); redirectBasedOnRole(data.user.role);
     });
   </script>
 </body>
