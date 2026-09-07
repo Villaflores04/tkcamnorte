@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fil">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Anunsyo · TK Cam Norte</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/premium.css">
+  <link rel="stylesheet" href="/css/fixes.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">
+      <div class="mark">TK</div>
+      <div class="brand-name">TK Cam Norte<small>Comment thread</small></div>
+    </a>
+    <div class="header-actions" id="headerActions">
+      <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span aria-hidden="true">🔔</span><em id="notifyBadge" hidden>0</em></button>
+      <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+    </div>
+    <ul class="nav-links" id="navLinks"></ul>
+  </header>
+  <main class="container">
+    <p class="meta" style="margin-bottom:12px"><a href="/">‹ Balik sa anunsyo</a></p>
+    <div id="post"></div>
+    <section class="card">
+      <h2>Mga komento</h2>
+      <div id="comments" class="comments-list" style="margin:12px 0"></div>
+      <div class="comment-composer">
+        <textarea class="comment-text" id="commentText" rows="1" maxlength="1000" placeholder="Magtanong o mag-reply..."></textarea>
+        <button class="btn" id="sendComment" type="button">Send</button>
+      </div>
+    </section>
+  </main>
+  <div id="bottomNavHost"></div>
+  <script type="module">
+    import {
+      requireAuth, initShell, apiJson, escapeHtml, formatDate, relativeTime,
+      deadlineMeta, categoryLabel, renderReactions, bindReactions, getUser,
+      avatarUrl, showToast, bottomNav, coverOf, isOngoing
+    } from '/js/common.js';
+
+    const user = await requireAuth();
+    if (!user) throw new Error('auth');
+    initShell(user);
+    document.getElementById('bottomNavHost').innerHTML = bottomNav('feed');
+    const id = new URLSearchParams(location.search).get('id');
+    if (!id) location.href = '/';
+
+    function commentHtml(c) {
+      const me = getUser();
+      const canManage = me && (me.id === c.user_id || me.role === 'admin');
+      const person = c.user || {};
+      return `<div class="comment" data-comment="${escapeHtml(c.id)}">
+        <img class="comment-avatar" src="${escapeHtml(avatarUrl(person, person.full_name))}" alt="">
+        <div class="comment-head">
+          <strong>${escapeHtml(person.full_name || 'Member')}</strong>
+          <small>${relativeTime(c.created_at)}</small>
+        </div>
+        <p class="comment-body">${escapeHtml(c.text)}</p>
+        ${canManage ? `<div class="comment-actions"><button type="button" data-edit-comment="${escapeHtml(c.id)}">Edit</button><button type="button" data-del-comment="${escapeHtml(c.id)}">Delete</button></div>` : ''}
+      </div>`;
+    }
+
+    async function loadComments() {
+      const box = document.getElementById('comments');
+      const { ok, data, error } = await apiJson(`/comments?announcementId=${encodeURIComponent(id)}`);
+      if (!ok) { box.innerHTML = `<p class="meta">${escapeHtml(error)}</p>`; return; }
+      if (!data?.length) { box.innerHTML = '<p class="meta">Unang magtanong.</p>'; return; }
+      box.innerHTML = data.map(commentHtml).join('');
+    }
+
+    async function loadPost() {
+      const box = document.getElementById('post');
+      const { ok, data, error } = await apiJson(`/announcements?id=${encodeURIComponent(id)}`);
+      if (!ok) { box.innerHTML = `<div class="card empty">${escapeHtml(error)}</div>`; return; }
+      const due = deadlineMeta(data.deadline_date || data.ends_at);
+      const author = data.created_by_user || {};
+      const cover = coverOf(data);
+      const files = Array.isArray(data.attachments) ? data.attachments : [];
+      box.innerHTML = `<article class="card announcement ${data.is_pinned ? 'pinned' : ''}">
+        <div class="tag-row">
+          ${isOngoing(data) ? '<span class="badge badge-soon">Ongoing</span>' : ''}
+          <span class="badge badge-cat">${escapeHtml(categoryLabel(data.category))}</span>
+          ${data.is_pinned ? '<span class="badge badge-pin">PINNED</span>' : ''}
+        </div>
+        <h3>${escapeHtml(data.title)}</h3>
+        <p class="body-text">${escapeHtml(data.content)}</p>
+        ${due ? `<div class="deadline-box"><strong>${escapeHtml(due.label.toUpperCase())}</strong><span class="meta">${escapeHtml(formatDate(data.deadline_date || data.ends_at))}</span></div>` : ''}
+        ${data.starts_at || data.ends_at ? `<p class="meta">Duration: ${escapeHtml(formatDate(data.starts_at) || '—')} → ${escapeHtml(formatDate(data.ends_at || data.deadline_date) || '—')}</p>` : ''}
+        ${cover ? `<img class="cover-thumb" style="width:100%;height:180px;margin-top:12px" src="${escapeHtml(cover)}" alt="">` : ''}
+        <div class="author-row">
+          <img src="${escapeHtml(avatarUrl(author, author.full_name))}" alt="">
+          <div><strong>${escapeHtml(author.full_name || 'Coordinator')}</strong><p class="meta">${relativeTime(data.created_at)}</p></div>
+        </div>
+        ${files.length ? `<div class="attachments">${files.map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${escapeHtml(f.file_name || 'File')}</a>`).join('')}</div>` : ''}
+        ${renderReactions(data)}
+      </article>`;
+      bindReactions(box);
+      document.title = `${data.title} · TK Cam Norte`;
+    }
+
+    document.getElementById('sendComment').onclick = async () => {
+      const textEl = document.getElementById('commentText');
+      const text = textEl.value.trim();
+      if (!text) return;
+      const btn = document.getElementById('sendComment');
+      btn.disabled = true;
+      const { ok, error } = await apiJson('/comments', { method: 'POST', body: JSON.stringify({ announcementId: id, text }) });
+      btn.disabled = false;
+      if (!ok) return showToast(error, 'error');
+      textEl.value = '';
+      loadComments();
+    };
+
+    document.getElementById('comments').onclick = async (e) => {
+      const del = e.target.closest('[data-del-comment]');
+      const edit = e.target.closest('[data-edit-comment]');
+      if (del) {
+        if (!confirm('Delete this comment?')) return;
+        const { ok, error } = await apiJson(`/comments?commentId=${encodeURIComponent(del.dataset.delComment)}`, { method: 'DELETE' });
+        if (!ok) return showToast(error, 'error');
+        loadComments();
+      }
+      if (edit) {
+        const wrap = edit.closest('.comment');
+        const current = wrap?.querySelector('.comment-body')?.textContent || '';
+        const next = prompt('Edit comment', current);
+        if (next == null || !next.trim()) return;
+        const { ok, error } = await apiJson('/comments', { method: 'PUT', body: JSON.stringify({ commentId: edit.dataset.editComment, text: next.trim() }) });
+        if (!ok) return showToast(error, 'error');
+        loadComments();
+      }
+    };
+
+    loadPost();
+    loadComments();
+  </script>
+</body>
+</html>
