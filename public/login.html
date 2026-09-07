@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Login · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/premium.css">
 </head>
 <body>
   <main class="auth-wrap">
@@ -27,7 +28,7 @@
             <button type="button" data-toggle="password">Show</button>
           </div>
         </div>
-        <p class="form-error" id="formError" hidden></p>
+        <p class="form-error" id="formError" hidden aria-live="polite"></p>
         <button class="btn" type="submit" id="submitBtn">Login</button>
       </form>
       <p class="meta auth-foot">Wala pang account? <a href="/register.html">Magrehistro</a></p>
@@ -41,9 +42,11 @@
     }
     document.querySelector('[data-toggle="password"]').onclick = () => {
       const input = document.getElementById('password');
+      const button = document.querySelector('[data-toggle="password"]');
       const show = input.type === 'password';
       input.type = show ? 'text' : 'password';
-      document.querySelector('[data-toggle="password"]').textContent = show ? 'Hide' : 'Show';
+      button.textContent = show ? 'Hide' : 'Show';
+      button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
     };
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
