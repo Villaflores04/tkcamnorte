@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Anunsyo · TK Cam Norte</title>
   <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/premium.css">
 </head>
 <body>
   <header class="topbar">
@@ -12,7 +13,7 @@
       <div class="mark">TK</div>
       <div class="brand-name">TK Cam Norte<small>Teatro Kristiano</small></div>
     </a>
-    <button class="hamburger" id="hamburger" type="button" aria-label="Menu">☰</button>
+    <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
     <ul class="nav-links" id="navLinks"></ul>
   </header>
   <main class="container">
@@ -37,19 +38,23 @@
     let currentCategory = 'all';
     const filters = document.getElementById('filters');
     filters.innerHTML = CATEGORIES.map((c) =>
-      `<button class="chip ${c.id === 'all' ? 'active' : ''}" data-cat="${c.id}">${c.label}</button>`
+      `<button class="chip ${c.id === 'all' ? 'active' : ''}" data-cat="${c.id}" aria-pressed="${c.id === 'all'}">${c.label}</button>`
     ).join('');
     filters.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-cat]');
       if (!btn) return;
       currentCategory = btn.dataset.cat;
-      filters.querySelectorAll('.chip').forEach((el) => el.classList.toggle('active', el === btn));
+      filters.querySelectorAll('.chip').forEach((el) => {
+        const active = el === btn;
+        el.classList.toggle('active', active);
+        el.setAttribute('aria-pressed', active);
+      });
       loadAnnouncements();
     });
 
     async function loadAnnouncements() {
       const box = document.getElementById('announcementsList');
-      box.innerHTML = '<div class="card empty">Loading...</div>';
+      box.innerHTML = '<div class="card empty">Loading announcements…</div>';
       const qs = currentCategory !== 'all' ? `?category=${currentCategory}` : '';
       const { ok, data, error } = await apiJson(`/announcements${qs}`);
       if (!ok) {
@@ -75,7 +80,7 @@
           <div class="tag-row">
             <span class="badge badge-cat">${escapeHtml(categoryLabel(a.category))}</span>
             ${a.is_pinned ? '<span class="badge badge-pin">Pinned</span>' : ''}
-            ${due ? `<span class="badge badge-${due.tone}">${due.label}</span>` : ''}
+            ${due ? `<span class="badge badge-${due.tone}">${escapeHtml(due.label)}</span>` : ''}
           </div>
           <h3>${escapeHtml(a.title)}</h3>
           <p class="body-text">${escapeHtml(a.content)}</p>
@@ -87,7 +92,7 @@
             <h4>Mga komento</h4>
             <div class="comments-list"></div>
             <div class="comment-composer">
-              <textarea class="comment-text" rows="1" maxlength="1000" placeholder="Magtanong o mag-reply..."></textarea>
+              <textarea class="comment-text" rows="1" maxlength="1000" placeholder="Magtanong o mag-reply..." aria-label="Comment"></textarea>
               <button class="btn add-comment" data-id="${a.id}" type="button">Send</button>
             </div>
           </section>
@@ -125,11 +130,13 @@
           const text = section.querySelector('.comment-text').value.trim();
           if (!text) return;
           btn.disabled = true;
+          btn.textContent = 'Sending…';
           const { ok, error } = await apiJson('/comments', {
             method: 'POST',
             body: JSON.stringify({ announcementId: btn.dataset.id, text })
           });
           btn.disabled = false;
+          btn.textContent = 'Send';
           if (!ok) return showToast(error, 'error');
           section.querySelector('.comment-text').value = '';
           loadComments(btn.dataset.id);
