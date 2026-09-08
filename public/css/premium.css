@@ -1,1 +1,116 @@
-/* Deprecated — all rules merged into style.css (single source of truth). Kept as an empty file so existing <link> tags in every page don't 404. */
+/* ============================================================
+   TK CAM NORTE — decorative layer: vector shapes + motion
+   No yellow gradients. Flat solid fills, soft float animation.
+   ============================================================ */
+
+/* soft ambient tint behind the whole app (blue + yellow, flat radial, low opacity) */
+body:before{
+  content:"";position:fixed;z-index:-1;inset:0;pointer-events:none;
+  background:
+    radial-gradient(480px 320px at -10% -8%, var(--blue-50) 0%, transparent 65%),
+    radial-gradient(420px 280px at 112% 10%, var(--yellow-50) 0%, transparent 65%);
+}
+
+/* ---------- Hero (home / admin) ---------- */
+.home-hero,.admin-hero{
+  position:relative;overflow:hidden;margin:0 calc(var(--gutter) * -1) 22px;
+  padding:32px 22px 30px;border-radius:0 0 32px 32px;
+  background:var(--blue-900);min-height:210px;
+  box-shadow:0 18px 40px rgba(10,36,114,.22);
+}
+.home-hero .eyebrow,.admin-hero .eyebrow{font-size:14px;font-weight:800;color:var(--yellow-500)}
+.home-hero h1,.admin-hero h1{font-size:40px;line-height:1;margin:6px 0 12px;color:#fff}
+.home-hero p,.admin-hero p{max-width:66%;color:#c7d6f7;font-size:14px;line-height:1.5}
+
+/* vector ring + dot ornaments, gently animated */
+.home-hero:after,.admin-hero:after{
+  content:"";position:absolute;right:-90px;top:-90px;width:230px;height:230px;
+  border:1.5px solid rgba(255,255,255,.16);border-radius:50%;
+  animation:tkSpin 34s linear infinite;
+}
+.home-hero .hero-orbit,.admin-hero .hero-orbit{
+  position:absolute;right:18px;bottom:-30px;width:120px;height:120px;
+  border:1.5px dashed var(--yellow-500);border-radius:50%;opacity:.55;
+  animation:tkSpinRev 22s linear infinite;
+}
+.home-hero .script,.admin-hero .script{
+  position:absolute;right:20px;top:64px;width:118px;font-family:cursive;font-style:italic;
+  font-weight:700;font-size:22px;line-height:1.05;color:var(--yellow-500);transform:rotate(-6deg);
+  animation:tkFloat 5s ease-in-out infinite;
+}
+.home-hero .script:after,.admin-hero .script:after{
+  content:"";display:block;width:64px;height:3px;margin:9px 0 0 6px;border-radius:99px;background:var(--yellow-500);
+}
+
+.section-head{margin-bottom:14px}
+.section-head h2{font-size:26px;line-height:1.05}
+.section-head .underline{width:56px;height:4px;background:var(--yellow-500);border-radius:4px;margin:8px 0}
+.section-head p{font-size:14px;color:var(--muted)}
+
+/* ---------- Card entrance / interaction motion ---------- */
+.card{animation:tkRise .45s var(--ease) both}
+.chip,.btn,.rx-btn,.cal-day,.group-card,.nav-links a{transition:transform .16s var(--ease),background .16s var(--ease),box-shadow .16s var(--ease)}
+.group-card:active{transform:scale(.98)}
+.rx-btn.active span{animation:tkPop .3s var(--ease)}
+
+/* ---------- Auth page vector backdrop ---------- */
+.auth-wrap:before{
+  content:"";position:absolute;z-index:0;width:420px;height:420px;left:-260px;top:-160px;
+  border:2px solid var(--yellow-500);border-radius:50%;box-shadow:0 0 0 60px var(--blue-50);
+  animation:tkSpin 60s linear infinite;
+}
+.auth-wrap:after{
+  content:"";position:absolute;z-index:0;right:-220px;bottom:-120px;width:520px;height:520px;
+  border-radius:50%;background:var(--blue-50);opacity:.9;
+}
+.auth-orbit{position:absolute;z-index:1;border-radius:50%;border:1px solid #cfe0fa}
+.auth-orbit-a{width:7px;height:7px;right:10%;top:15%;box-shadow:24px 0 var(--blue-100),48px 0 var(--blue-100),0 24px var(--blue-100),24px 24px var(--blue-100),48px 24px var(--blue-100),0 48px var(--blue-100),24px 48px var(--blue-100),48px 48px var(--blue-100);animation:tkFloat 7s ease-in-out infinite}
+.auth-orbit-b{width:6px;height:6px;left:12%;bottom:16%;box-shadow:18px 0 #dbe7f9,36px 0 #dbe7f9,0 18px #dbe7f9,18px 18px #dbe7f9,36px 18px #dbe7f9,0 36px #dbe7f9,18px 36px #dbe7f9,36px 36px #dbe7f9;animation:tkFloat 8s ease-in-out infinite reverse}
+
+/* ---------- Bottom nav ---------- */
+.mobile-bottom-nav{
+  position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:35;
+  display:flex;padding:6px;border:1px solid var(--line);border-radius:24px;
+  background:rgba(255,255,255,.96);box-shadow:var(--shadow-lg);backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  touch-action:pan-y;overscroll-behavior-x:contain;
+}
+.mobile-bottom-nav a{
+  position:relative;flex:1;min-width:0;min-height:56px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:4px;border-radius:18px;color:#7187ad;
+  font-size:10px;font-weight:800;transition:.18s var(--ease);white-space:nowrap;overflow:hidden;
+}
+.mobile-bottom-nav a .icon{width:21px;height:21px}
+.mobile-bottom-nav a span:last-child{overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.mobile-bottom-nav a.active{color:var(--blue-700);background:var(--blue-50)}
+.mobile-bottom-nav a.active:after{
+  content:"";position:absolute;bottom:6px;width:16px;height:3px;border-radius:99px;background:var(--yellow-500);
+}
+.mobile-bottom-nav a:active{transform:scale(.95)}
+
+/* ---------- keyframes ---------- */
+@keyframes tkRise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes tkPop{0%{transform:scale(.7)}65%{transform:scale(1.18)}100%{transform:scale(1)}}
+@keyframes tkFloat{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-6px) rotate(-4deg)}}
+@keyframes tkSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes tkSpinRev{from{transform:rotate(360deg)}to{transform:rotate(0)}}
+
+@media (max-width:380px){
+  .home-hero h1,.admin-hero h1{font-size:34px}
+  .home-hero .script,.admin-hero .script{font-size:18px;width:96px}
+  .announcement h3{font-size:18px}
+}
+@media (max-width:359px){
+  .home-hero,.admin-hero{padding-right:16px}
+  .home-hero p,.admin-hero p{max-width:100%;padding-right:76px}
+  .home-hero .script,.admin-hero .script{display:none}
+}
+@media (min-width:700px){
+  .mobile-bottom-nav{display:none}
+  .container{padding-left:24px;padding-right:24px}
+  .home-hero,.admin-hero{margin-left:-24px;margin-right:-24px;padding-left:32px}
+  .home-hero h1,.admin-hero h1{font-size:52px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
