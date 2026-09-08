@@ -1,0 +1,1 @@
+# Visual refresh notes
