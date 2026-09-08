@@ -36,7 +36,10 @@ const ICONS = {
   megaphone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4l13 4V6L4 10z"/><path d="M7.5 14.5v3.2A2.3 2.3 0 0 0 11 20"/></svg>',
   upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"/><path d="M7 10l5-5 5 5"/><path d="M5 19h14"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>',
-  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16z"/><path d="M13 7l4 4"/></svg>'
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16z"/><path d="M13 7l4 4"/></svg>',
+  sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M6.2 6.2L4.8 4.8M19.2 19.2l-1.4-1.4M6.2 17.8L4.8 19.2M19.2 4.8l-1.4 1.4"/></svg>',
+  moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A7.5 7.5 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"/></svg>',
+  hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V7a1.5 1.5 0 0 1 3 0v4"/><path d="M11 11V6a1.5 1.5 0 0 1 3 0v5"/><path d="M14 11V7.5a1.5 1.5 0 0 1 3 0V14a5 5 0 0 1-5 5H9a5 5 0 0 1-4.3-2.5L3 13.5"/></svg>'
 };
 
 export function icon(name) {
@@ -162,7 +165,54 @@ export async function requireAuth(role) {
 }
 
 export function redirectBasedOnRole() {
-  location.href = '/';
+  playBumper(() => { location.href = '/'; });
+}
+
+export function applyTheme(theme) {
+  const dark = theme === 'dark';
+  document.documentElement.classList.toggle('dark', dark);
+  document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
+  try { localStorage.setItem('tk-theme', theme); } catch {}
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', dark ? '#08101c' : '#0a2048');
+  const btn = document.getElementById('themeToggle');
+  if (btn) {
+    btn.innerHTML = dark ? icon('sun') : icon('moon');
+    btn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  }
+}
+
+export function currentTheme() {
+  try {
+    const stored = localStorage.getItem('tk-theme');
+    if (stored === 'dark' || stored === 'light') return stored;
+  } catch {}
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+export function toggleTheme() {
+  applyTheme(currentTheme() === 'dark' ? 'light' : 'dark');
+}
+
+export function mountThemeToggle(host) {
+  if (!host || document.getElementById('themeToggle')) return;
+  const btn = document.createElement('button');
+  btn.id = 'themeToggle';
+  btn.type = 'button';
+  btn.className = 'icon-btn theme-toggle';
+  host.prepend(btn);
+  applyTheme(currentTheme());
+  btn.addEventListener('click', toggleTheme);
+}
+
+export function playBumper(done) {
+  if (document.querySelector('.tk-bumper')) { done?.(); return; }
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const el = document.createElement('div');
+  el.className = 'tk-bumper';
+  el.innerHTML = `<div class="glow"></div><div class="ring"></div><div class="mark mark-large">TK</div><p>TK Cam Norte</p>`;
+  document.body.appendChild(el);
+  setTimeout(() => { done?.(); }, reduce ? 180 : 1180);
 }
 
 export function escapeHtml(str) {
@@ -325,6 +375,8 @@ export function initShell(user, options = {}) {
     actions.insertBefore(notify, hamburger);
   }
 
+  mountThemeToggle(actions);
+
   let scrim = document.getElementById('navScrim');
   if (!scrim) {
     scrim = document.createElement('div');
@@ -433,6 +485,8 @@ export function initShell(user, options = {}) {
   if (options.loadNotifications !== false) loadNotifications();
 }
 
+applyTheme(currentTheme());
+
 export async function loadNotifications() {
   const list = document.getElementById('notifyList');
   const badge = document.getElementById('notifyBadge');
@@ -461,13 +515,13 @@ export function renderReactions(announcement) {
   const rx = announcement.reactions || { amen: 0, heart: 0, clap: 0, mine: null };
   const btn = (type, glyph, label) => `
     <button type="button" class="rx-btn ${rx.mine === type ? 'active' : ''}" data-rx="${type}" data-id="${announcement.id}" aria-pressed="${rx.mine === type}" aria-label="${label}">
-      <span>${glyph}</span><em>${rx[type] || 0}</em>
+      <span class="icon">${glyph}</span><em>${rx[type] || 0}</em>
     </button>`;
   return `
     <div class="rx-row" data-rx-row="${announcement.id}">
-      ${btn('amen', '🙏', 'Amen')}
-      ${btn('heart', '💛', 'Heart')}
-      ${btn('clap', '👏', 'Clap')}
+      ${btn('amen', icon('heart'), 'Amen')}
+      ${btn('heart', icon('heart'), 'Heart')}
+      ${btn('clap', icon('hand'), 'Clap')}
     </div>`;
 }
 

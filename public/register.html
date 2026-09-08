@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/premium.css">
   <link rel="stylesheet" href="/css/fixes.css">
+  <link rel="stylesheet" href="/css/next.css">
+  <meta name="theme-color" content="#0A2048">
+  <script>(function(){try{var t=localStorage.getItem('tk-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();</script>
 </head>
 <body class="auth-page">
   <main class="auth-wrap">
@@ -42,7 +45,11 @@
     </div>
   </main>
   <script type="module">
-    import { setToken, setUser, apiJson, setFormError } from '/js/common.js';
+    import { setToken, setUser, apiJson, setFormError, playBumper, mountThemeToggle } from '/js/common.js';
+    const themeHost = document.createElement('div');
+    themeHost.style.cssText = 'position:absolute;top:calc(12px + env(safe-area-inset-top));right:12px;z-index:5';
+    document.querySelector('.auth-wrap').appendChild(themeHost);
+    mountThemeToggle(themeHost);
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       setFormError('formError', '');
@@ -60,7 +67,7 @@
       btn.disabled = false;
       btn.textContent = 'Create account';
       if (!ok) return setFormError('formError', error);
-      setToken(data.token); setUser(data.user); location.href = '/';
+      setToken(data.token); setUser(data.user); playBumper(() => { location.href = '/'; });
     });
   </script>
 </body>
