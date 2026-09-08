@@ -1,139 +1,32 @@
 <!DOCTYPE html>
 <html lang="fil">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Anunsyo · TK Cam Norte</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/premium.css">
-  <link rel="stylesheet" href="/css/fixes.css">
-  <link rel="stylesheet" href="/css/next.css">
-  <meta name="theme-color" content="#0A2048">
-  <script>(function(){try{var t=localStorage.getItem('tk-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();</script>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>TK Cam Norte · Anunsyo</title>
+<link rel="stylesheet" href="/css/style.css"><link rel="stylesheet" href="/css/premium.css"><link rel="stylesheet" href="/css/fixes.css"><link rel="stylesheet" href="/css/next.css"><link rel="stylesheet" href="/css/globe-redesign.css">
+<meta name="theme-color" content="#071A3D"><script>(function(){try{var t=localStorage.getItem('tk-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark')}catch(e){}})();</script>
 </head>
 <body>
-  <header class="topbar">
-    <a class="brand" href="/">
-      <div class="mark">TK</div>
-      <div class="brand-name">TK Cam Norte<small>Teatro Kristiano</small></div>
-    </a>
-    <div class="header-actions" id="headerActions">
-      <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span class="icon" data-icon="bell" aria-hidden="true"></span><em id="notifyBadge" hidden>0</em></button>
-      <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false"><span class="icon" data-icon="menu" aria-hidden="true"></span></button>
-    </div>
-    <ul class="nav-links" id="navLinks"></ul>
-  </header>
-  <main class="container">
-    <section class="home-hero">
-      <div class="eyebrow">Magandang araw,</div>
-      <h1 id="welcomeName">Kaibigan</h1>
-      <p>Stay updated sa mga importanteng announcement ng TK Cam Norte.</p>
-      <div class="hero-orbit" aria-hidden="true"></div>
-      <div class="script" aria-hidden="true">Together<br>in His<br>Purpose</div>
-    </section>
-    <section class="section-head">
-      <h2>Mga Anunsyo</h2>
-      <div class="underline"></div>
-      <p>Mga bagong update, schedules, deadlines, at activities.</p>
-    </section>
-    <div class="chip-row" id="filters" aria-label="Announcement categories"></div>
-    <div id="announcementsList"></div>
-  </main>
-  <div id="bottomNavHost"></div>
-  <script type="module">
-    import {
-      requireAuth, initShell, apiJson, escapeHtml, formatDate, relativeTime,
-      deadlineMeta, categoryLabel, CATEGORIES, renderReactions, bindReactions,
-      isAdmin, avatarUrl, firstName, bottomNav, coverOf, isOngoing, icon
-    } from '/js/common.js';
-
-    const user = await requireAuth();
-    if (!user) throw new Error('auth');
-    initShell(user);
-    document.getElementById('welcomeName').textContent = firstName(user);
-    document.getElementById('bottomNavHost').innerHTML = bottomNav('home');
-
-    let currentCategory = 'all';
-    const filters = document.getElementById('filters');
-    filters.innerHTML = CATEGORIES.map((c) =>
-      `<button class="chip ${c.id === 'all' ? 'active' : ''}" data-cat="${c.id}" aria-pressed="${c.id === 'all'}">${escapeHtml(c.label)}</button>`
-    ).join('');
-    filters.addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-cat]');
-      if (!btn) return;
-      currentCategory = btn.dataset.cat;
-      filters.querySelectorAll('.chip').forEach((el) => {
-        const active = el === btn;
-        el.classList.toggle('active', active);
-        el.setAttribute('aria-pressed', String(active));
-      });
-      loadAnnouncements();
-    });
-
-    function progressWidth(due) {
-      if (!due || due.days == null) return 40;
-      if (due.days < 0) return 100;
-      if (due.days === 0) return 92;
-      return Math.max(12, Math.min(88, 100 - due.days * 8));
-    }
-
-    function renderCard(a) {
-      const due = deadlineMeta(a.deadline_date || a.ends_at);
-      const author = a.created_by_user || {};
-      const files = Array.isArray(a.attachments) ? a.attachments : [];
-      const cover = coverOf(a);
-      const count = a.comment_count || 0;
-      const admin = isAdmin();
-      const deadline = due ? `<div class="deadline-box"><strong>${icon('clock')}${escapeHtml(due.label.toUpperCase())}</strong><div class="bar"><span style="width:${progressWidth(due)}%"></span></div><span class="meta">${escapeHtml(formatDate(a.deadline_date || a.ends_at))}</span></div>` : '';
-      const docs = files.filter((f) => !/\.(png|jpe?g|webp|gif)$/i.test(f.file_name || ''));
-      return `<article class="card announcement cat-${escapeHtml(a.category)} ${a.is_pinned ? 'pinned' : ''}" data-post="${escapeHtml(a.id)}">
-        <div class="tag-row">
-          ${isOngoing(a) ? '<span class="badge badge-soon">Ongoing</span>' : ''}
-          <span class="badge badge-cat">${escapeHtml(categoryLabel(a.category))}</span>
-          ${a.is_pinned ? `<span class="badge badge-pin">${icon('pin')}PINNED</span>` : ''}
-        </div>
-        <div class="announcement-split">
-          <div>
-            <h3>${escapeHtml(a.title)}</h3>
-            <p class="body-text">${escapeHtml(a.content)}</p>
-            ${deadline}
-          </div>
-          ${cover ? `<img class="cover-thumb" src="${escapeHtml(cover)}" alt="">` : ''}
-        </div>
-        <div class="author-row">
-          <img src="${escapeHtml(avatarUrl(author, author.full_name))}" alt="">
-          <div>
-            <strong>${escapeHtml(author.full_name || 'Coordinator')}</strong>
-            <p class="meta">${relativeTime(a.created_at)}</p>
-          </div>
-        </div>
-        ${docs.length ? `<div class="attachments">${docs.map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${icon('doc')}${escapeHtml(f.file_name || 'File')}</a>`).join('')}</div>` : ''}
-        <div class="card-foot">
-          ${renderReactions(a)}
-          <a class="see-all" href="/announcement.html?id=${encodeURIComponent(a.id)}">${icon('chat')}${count} comment${count === 1 ? '' : 's'} · See all</a>
-        </div>
-        ${admin ? `<div class="btn-row single"><a class="btn btn-ghost" href="/admin.html?edit=${encodeURIComponent(a.id)}">Edit</a></div>` : ''}
-      </article>`;
-    }
-
-    async function loadAnnouncements() {
-      const box = document.getElementById('announcementsList');
-      box.innerHTML = '<div class="card empty"><div class="skel" style="height:14px;width:40%;margin:8px auto"></div><div class="skel" style="height:10px;width:70%;margin:10px auto"></div></div><div class="card"><div class="skel" style="height:12px;width:28%"></div><div class="skel" style="height:20px;width:72%;margin-top:12px"></div><div class="skel" style="height:10px;width:100%;margin-top:10px"></div></div>';
-      const qs = currentCategory !== 'all' ? `?category=${encodeURIComponent(currentCategory)}` : '';
-      const { ok, data, error } = await apiJson(`/announcements${qs}`);
-      if (!ok) {
-        box.innerHTML = `<div class="card empty">${escapeHtml(error)}</div>`;
-        return;
-      }
-      if (!Array.isArray(data) || !data.length) {
-        box.innerHTML = '<div class="card empty">Wala pang anunsyo sa category na ito.</div>';
-        return;
-      }
-      box.innerHTML = data.map(renderCard).join('');
-      bindReactions(box);
-    }
-
-    loadAnnouncements();
-  </script>
-</body>
-</html>
+<header class="topbar"><a class="brand" href="/"><div class="mark">TK</div><div class="brand-name">TK Cam Norte<small>Teatro Kristiano</small></div></a><div class="header-actions" id="headerActions"><button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span class="icon" data-icon="bell"></span><em id="notifyBadge" hidden>0</em></button><button class="hamburger" id="hamburger" type="button" aria-label="Menu"><span class="icon" data-icon="menu"></span></button></div><ul class="nav-links" id="navLinks"></ul></header>
+<main class="container">
+<section class="home-hero">
+  <div class="hero-copy"><div class="eyebrow">TK CAM NORTE · CONNECTED</div><h1>Magandang araw,<br><span id="welcomeName">Kaibigan</span></h1><p>Your announcements, activities, schedules, and important updates—brought into one living TK experience.</p></div>
+  <div class="hero-globe-wrap"><div class="globe-legend"><span class="yellow"><i></i>Important</span><span class="blue"><i></i>Updates</span><span class="white"><i></i>Events</span></div><div id="tkGlobe" class="tk-globe"></div><div class="globe-hint">Drag to rotate · Pinch or scroll to zoom</div><aside id="globePanel" class="globe-panel"><div class="kicker" id="globePanelKicker">Selected update</div><h3 id="globePanelTitle">Explore TK</h3><p id="globePanelText">Select a glowing point on the globe to preview an announcement.</p><button class="btn" id="globePanelAction" type="button" hidden>View announcement</button></aside></div>
+</section>
+<section class="section-head"><div><h2>Mga Anunsyo</h2><div class="underline"></div><p>Mga bagong update, schedules, deadlines, at activities.</p></div></section>
+<div class="chip-row" id="filters" aria-label="Announcement categories"></div><div id="announcementsList" aria-live="polite"></div>
+</main><div id="bottomNavHost"></div>
+<script type="module">
+import{requireAuth,initShell,apiJson,escapeHtml,formatDate,relativeTime,deadlineMeta,categoryLabel,CATEGORIES,renderReactions,bindReactions,isAdmin,avatarUrl,firstName,bottomNav,coverOf,isOngoing,icon}from'/js/common.js';
+import{mountTKGlobe}from'/js/three-globe.js';
+const user=await requireAuth();if(!user)throw new Error('auth');initShell(user);document.getElementById('welcomeName').textContent=firstName(user);document.getElementById('bottomNavHost').innerHTML=bottomNav('home');
+let currentCategory='all',allAnnouncements=[],globeDestroy=null;
+const filters=document.getElementById('filters');filters.innerHTML=CATEGORIES.map(c=>`<button class="chip ${c.id==='all'?'active':''}" data-cat="${c.id}" aria-pressed="${c.id==='all'}">${escapeHtml(c.label)}</button>`).join('');filters.addEventListener('click',e=>{const b=e.target.closest('[data-cat]');if(!b)return;currentCategory=b.dataset.cat;filters.querySelectorAll('.chip').forEach(x=>{const a=x===b;x.classList.toggle('active',a);x.setAttribute('aria-pressed',String(a))});loadAnnouncements()});
+function progressWidth(d){if(!d||d.days==null)return 40;if(d.days<0)return 100;if(d.days===0)return 92;return Math.max(12,Math.min(88,100-d.days*8))}
+function renderCard(a){const due=deadlineMeta(a.deadline_date||a.ends_at),author=a.created_by_user||{},files=Array.isArray(a.attachments)?a.attachments:[],cover=coverOf(a),count=a.comment_count||0,admin=isAdmin();const deadline=due?`<div class="deadline-box"><strong>${icon('clock')}${escapeHtml(due.label.toUpperCase())}</strong><div class="bar"><span style="width:${progressWidth(due)}%"></span></div><span class="meta">${escapeHtml(formatDate(a.deadline_date||a.ends_at))}</span></div>`:'';const docs=files.filter(f=>!(/\.(png|jpe?g|webp|gif)$/i.test(f.file_name||'')));return `<article class="card announcement cat-${escapeHtml(a.category)} ${a.is_pinned?'pinned':''}"><div class="tag-row">${isOngoing(a)?'<span class="badge badge-soon">Ongoing</span>':''}<span class="badge badge-cat">${escapeHtml(categoryLabel(a.category))}</span>${a.is_pinned?`<span class="badge badge-pin">${icon('pin')}PINNED</span>`:''}</div><div class="announcement-split"><div><h3>${escapeHtml(a.title)}</h3><p class="body-text">${escapeHtml(a.content)}</p>${deadline}</div>${cover?`<img class="cover-thumb" src="${escapeHtml(cover)}" alt="">`:''}</div><div class="author-row"><img src="${escapeHtml(avatarUrl(author,author.full_name))}" alt=""><div><strong>${escapeHtml(author.full_name||'Coordinator')}</strong><p class="meta">${relativeTime(a.created_at)}</p></div></div>${docs.length?`<div class="attachments">${docs.map(f=>`<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${icon('doc')}${escapeHtml(f.file_name||'File')}</a>`).join('')}</div>`:''}<div class="card-foot">${renderReactions(a)}<a class="see-all" href="/announcement.html?id=${encodeURIComponent(a.id)}">${icon('chat')}${count} comment${count===1?'':'s'} · See all</a></div>${admin?`<div class="btn-row single"><a class="btn btn-ghost" href="/admin.html?edit=${encodeURIComponent(a.id)}">Edit</a></div>`:''}</article>`}
+function showGlobePanel(item){const p=document.getElementById('globePanel');document.getElementById('globePanelKicker').textContent=item.is_pinned?'Pinned announcement':(categoryLabel(item.category)||'Update');document.getElementById('globePanelTitle').textContent=item.title||'Announcement';document.getElementById('globePanelText').textContent=(item.content||'').slice(0,180);const b=document.getElementById('globePanelAction');b.hidden=!item.id;b.onclick=()=>location.href='/announcement.html?id='+encodeURIComponent(item.id);p.classList.add('show')}
+async function mountGlobe(){if(globeDestroy)globeDestroy();globeDestroy=mountTKGlobe(document.getElementById('tkGlobe'),{items:allAnnouncements,onSelect:showGlobePanel})}
+async function loadAnnouncements(){const box=document.getElementById('announcementsList');box.innerHTML='<div class="card empty">Loading your TK world…</div>';const qs=currentCategory!=='all'?`?category=${encodeURIComponent(currentCategory)}`:'';const{ok,data,error}=await apiJson(`/announcements${qs}`);if(!ok){box.innerHTML=`<div class="card empty">${escapeHtml(error)}</div>`;return}allAnnouncements=Array.isArray(data)?data:[];if(currentCategory==='all')await mountGlobe();if(!allAnnouncements.length){box.innerHTML='<div class="card empty">Wala pang anunsyo sa category na ito.</div>';return}box.innerHTML=allAnnouncements.map(renderCard).join('');bindReactions(box)}
+loadAnnouncements();
+</script>
+</body></html>
