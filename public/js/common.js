@@ -136,9 +136,24 @@ export function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// BUG FIX: "YYYY-MM-DD" strings are parsed by `new Date()` as UTC midnight.
+// Once formatted/compared in the visitor's local timezone that can land on
+// the previous calendar day (anyone west of UTC, e.g. the Americas), so
+// deadlines and calendar dates could silently show a day early. Build
+// date-only values in local time instead; anything with a time component
+// (full ISO timestamps like created_at) still parses normally.
+export function parseDateValue(value) {
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  }
+  return new Date(value);
+}
+
 export function formatDate(value, withTime = false) {
   if (!value) return '';
-  const d = new Date(value);
+  const d = parseDateValue(value);
   if (Number.isNaN(d.getTime())) return '';
   return withTime
     ? d.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
@@ -147,7 +162,7 @@ export function formatDate(value, withTime = false) {
 
 export function relativeTime(value) {
   if (!value) return '';
-  const d = new Date(value);
+  const d = parseDateValue(value);
   if (Number.isNaN(d.getTime())) return '';
   const diff = Date.now() - d.getTime();
   const mins = Math.round(diff / 60000);
@@ -162,7 +177,7 @@ export function relativeTime(value) {
 
 export function deadlineMeta(dateStr) {
   if (!dateStr) return null;
-  const due = new Date(dateStr);
+  const due = parseDateValue(dateStr);
   if (Number.isNaN(due.getTime())) return null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -178,8 +193,8 @@ export function deadlineMeta(dateStr) {
 export function isOngoing(a) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const start = a.starts_at ? new Date(a.starts_at) : null;
-  const end = a.ends_at ? new Date(a.ends_at) : (a.deadline_date ? new Date(a.deadline_date) : null);
+  const start = a.starts_at ? parseDateValue(a.starts_at) : null;
+  const end = a.ends_at ? parseDateValue(a.ends_at) : (a.deadline_date ? parseDateValue(a.deadline_date) : null);
   if (start) start.setHours(0, 0, 0, 0);
   if (end) end.setHours(0, 0, 0, 0);
   if (start && end) return start <= today && end >= today;
@@ -463,6 +478,16 @@ export function bindReactions(root = document) {
       toggleReaction(btn.dataset.id, btn.dataset.rx, btn.closest('.rx-row'));
     };
   });
+}
+
+export function autoGrow(el, maxPx = 160) {
+  if (!el) return;
+  const resize = () => {
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, maxPx)}px`;
+  };
+  el.addEventListener('input', resize);
+  resize();
 }
 
 export function bottomNav(active) {
