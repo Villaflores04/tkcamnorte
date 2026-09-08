@@ -401,9 +401,11 @@ a { color: var(--blue); text-decoration: none; }
 .comment-text,
 textarea.comment-text {
   min-height: 44px !important;
-  height: 44px;
+  max-height: 160px;
   padding: 10px 12px !important;
   resize: none;
+  overflow-y: auto;
+  transition: height 0.12s ease;
 }
 .comment-composer .btn {
   width: auto;

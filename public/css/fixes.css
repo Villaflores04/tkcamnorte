@@ -74,6 +74,19 @@ body.nav-open { overflow: hidden !important; touch-action: none; }
   border: 2px solid #ffc629;
 }
 
+/* BUG FIX: premium.css's `input,textarea,select{padding:12px 14px!important}`
+   shorthand strips the padding-right that .password-wrap needs to clear the
+   show/hide toggle button, so password text on login/register was rendering
+   underneath the eye icon on mobile. Restore clearance here (loads last). */
+.password-wrap input {
+  padding-right: 56px !important;
+}
+/* Same shorthand also strips the left icon clearance on plain (non-shell)
+   password fields if input-shell is absent; keep both paddings explicit. */
+.input-shell input {
+  padding-left: 54px !important;
+}
+
 .notify-panel {
   position: fixed;
   z-index: 76;
