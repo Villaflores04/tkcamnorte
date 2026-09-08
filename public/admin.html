@@ -84,15 +84,18 @@
   <a href="/profile.html"><span class="nav-icon">♙</span><span>Profile</span></a>
 </nav>
 <style>
-.admin-hero{position:relative;overflow:hidden;margin:0 -14px 14px;padding:28px 20px 25px;background:linear-gradient(145deg,#eef5ff,#e5f0ff 62%,#fff5cc);border-radius:0 0 30px 30px}
-.admin-hero .eyebrow{font-size:15px;font-weight:800}.admin-hero h1{font-size:46px;line-height:1;margin:4px 0 11px}.admin-hero p{max-width:65%;font-size:14px;color:#49658f}
-.admin-hero .script{position:absolute;right:20px;top:62px;font:italic 700 22px/1.02 cursive;color:#0b4fbd;transform:rotate(-7deg)}
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.stat-card{display:flex;align-items:center;gap:10px;padding:14px;border:1px solid #dce8f8;border-radius:20px;background:#fff}
-.stat-card strong{display:block;font:800 30px/1 Outfit,sans-serif;color:#102d73}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.upload-zone{min-height:105px!important;display:flex!important;flex-direction:column!important;align-items:center;justify-content:center;gap:3px;padding:15px;border:1.5px dashed #9fc1f4;border-radius:18px;background:#f7fbff;color:#0b4fbd;cursor:pointer;text-align:center}
-@media(max-width:380px){.form-grid{grid-template-columns:1fr}.admin-hero h1{font-size:40px}}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.stat-card{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-md);background:#fff;box-shadow:var(--shadow-sm);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.stat-icon{flex:0 0 44px;width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(150deg,var(--blue-soft),var(--blue-soft-2));font-size:20px;color:var(--blue-700)}
+.stat-card strong{display:block;font:800 28px/1 Outfit,sans-serif;color:var(--navy-900)}
+.stat-card span{color:var(--muted);font-size:12px;font-weight:700}
+.upload-zone{min-height:108px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:16px;border:1.5px dashed var(--blue-500);border-radius:var(--radius-md);background:var(--blue-soft);color:var(--blue-700);cursor:pointer;text-align:center;transition:background .15s var(--ease),border-color .15s var(--ease)}
+.upload-zone:hover{background:var(--blue-soft-2);border-color:var(--blue-700)}
+.upload-zone span{font-size:20px}
+.upload-zone strong{font-size:13.5px}
+.upload-zone small{color:var(--muted);font-size:11.5px}
+.admin-actions{margin-top:6px}
 </style>
 <script type="module">
 import {requireAuth,initShell,apiJson,uploadFiles,escapeHtml,formatDate,categoryLabel,showToast,setFormError,deadlineMeta} from '/js/common.js';
