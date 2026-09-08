@@ -37,13 +37,14 @@
     import {
       requireAuth, initShell, apiJson, escapeHtml, formatDate, relativeTime,
       deadlineMeta, categoryLabel, renderReactions, bindReactions, getUser,
-      avatarUrl, showToast, bottomNav, coverOf, isOngoing
+      avatarUrl, showToast, bottomNav, coverOf, isOngoing, autoGrow
     } from '/js/common.js';
 
     const user = await requireAuth();
     if (!user) throw new Error('auth');
     initShell(user);
     document.getElementById('bottomNavHost').innerHTML = bottomNav('feed');
+    autoGrow(document.getElementById('commentText'));
     const id = new URLSearchParams(location.search).get('id');
     if (!id) location.href = '/';
 
@@ -110,6 +111,8 @@
       btn.disabled = false;
       if (!ok) return showToast(error, 'error');
       textEl.value = '';
+      textEl.style.height = 'auto';
+      textEl.dispatchEvent(new Event('input'));
       loadComments();
     };
 

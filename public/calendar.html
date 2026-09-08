@@ -40,7 +40,7 @@
   </main>
   <div id="bottomNavHost"></div>
   <script type="module">
-    import { requireAuth, initShell, apiJson, escapeHtml, formatDate, categoryLabel, bottomNav } from '/js/common.js';
+    import { requireAuth, initShell, apiJson, escapeHtml, formatDate, categoryLabel, bottomNav, parseDateValue } from '/js/common.js';
     const user = await requireAuth();
     if (!user) throw new Error('auth');
     initShell(user);
@@ -52,7 +52,7 @@
     let items = [];
 
     function ymd(d) {
-      const x = new Date(d);
+      const x = parseDateValue(d);
       if (Number.isNaN(x.getTime())) return '';
       return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
     }
@@ -60,8 +60,8 @@
       const out = new Set();
       [a.starts_at, a.ends_at, a.deadline_date].forEach((v) => { if (v) out.add(ymd(v)); });
       if (a.starts_at && (a.ends_at || a.deadline_date)) {
-        const start = new Date(a.starts_at);
-        const end = new Date(a.ends_at || a.deadline_date);
+        const start = parseDateValue(a.starts_at);
+        const end = parseDateValue(a.ends_at || a.deadline_date);
         for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) out.add(ymd(d));
       }
       return [...out];
@@ -88,7 +88,7 @@
       grid.innerHTML = cells.join('');
       grid.querySelectorAll('[data-day]').forEach((btn) => {
         btn.onclick = () => {
-          selected = new Date(btn.dataset.day);
+          selected = parseDateValue(btn.dataset.day);
           renderMonth();
           renderDay();
         };

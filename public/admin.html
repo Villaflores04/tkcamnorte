@@ -19,7 +19,7 @@
 </header>
 <main class="container">
   <section class="admin-hero"><div class="eyebrow">Good morning</div><h1>Coordinator</h1><p>Manage announcements and members from one place.</p><div class="script">Together<br>in His<br>Purpose</div></section>
-  <section class="stats-grid"><div class="stat-card"><span class="stat-icon">◈</span><div><strong id="announcementCount">—</strong><span>Announcements</span></div><b>↟</b></div><div class="stat-card"><span class="stat-icon">♣</span><div><strong id="memberCount">—</strong><span>Members</span></div><b>•</b></div></section>
+  <section class="stats-grid"><div class="stat-card"><span class="stat-icon">◈</span><div><strong id="announcementCount">—</strong><span>Announcements</span></div></div><div class="stat-card"><span class="stat-icon">♣</span><div><strong id="memberCount">—</strong><span>Members</span></div></div></section>
   <div class="tabs" role="tablist" aria-label="Coordinator sections">
     <button type="button" class="active" data-tab="compose" role="tab" aria-selected="true">Compose</button>
     <button type="button" data-tab="posts" role="tab" aria-selected="false">Anunsyo</button>
@@ -99,9 +99,11 @@ import {requireAuth,initShell,apiJson,uploadFiles,escapeHtml,formatDate,category
 const user = await requireAuth('admin'); if (!user) throw new Error('auth'); initShell(user);
 const params = new URLSearchParams(location.search);
 const tabs = document.querySelectorAll('.tabs button');
+const bottomTabLinks = document.querySelectorAll('.mobile-bottom-nav a[href^="#panel-"]');
 tabs.forEach((btn) => btn.onclick = () => {
   tabs.forEach((b) => { const a = b === btn; b.classList.toggle('active', a); b.setAttribute('aria-selected', String(a)); });
   document.querySelectorAll('.panel').forEach((p) => p.hidden = p.id !== `panel-${btn.dataset.tab}`);
+  bottomTabLinks.forEach((a) => a.classList.toggle('active', a.getAttribute('href') === `#panel-${btn.dataset.tab}`));
   if (btn.dataset.tab === 'posts') loadPosts();
   if (btn.dataset.tab === 'members') loadUsers();
 });
