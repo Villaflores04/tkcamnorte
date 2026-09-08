@@ -1,56 +1,10 @@
-/* ============================================================
-   Interaction + layout bug fixes — loads last, wins the cascade.
-   ============================================================ */
+@import url('/css/globe-redesign.css');
 
-/* BUG FIX 1 — bottom tab bar was swipeable / large and let the
-   user drag the page horizontally far enough to reveal the
-   browser's edge-swipe (back/forward) transition, which flashed
-   an unstyled, half-loaded page underneath. Lock horizontal
-   panning everywhere it matters and hard-clamp page width. */
-html, body {
-  overflow-x: hidden !important;
-  max-width: 100vw;
-  overscroll-behavior-x: none;
-  touch-action: pan-y;
-}
-main, .container {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-.mobile-bottom-nav {
-  touch-action: pan-y;
-  overscroll-behavior-x: contain;
-  max-width: calc(100vw - 24px);
-}
-
-/* BUG FIX 2 — hamburger menu: the header (.topbar) previously had
-   a HIGHER z-index than the open nav drawer and its scrim, so the
-   sticky header rendered on top of the menu. Any tap that landed in
-   that overlapping top strip hit the (invisible, non-interactive)
-   header instead of the menu link underneath it, so the tap seemed
-   to just close the menu and "the tab disappeared" instead of
-   navigating. Re-stack so the drawer + scrim always sit above the
-   header, while the toggle button itself stays reachable above both
-   so it can still close the menu. */
-.topbar { z-index: 40 !important; }
-.header-actions { position: relative; z-index: 96 !important; }
-.icon-btn, .hamburger { z-index: 96 !important; }
-.nav-scrim { z-index: 90 !important; }
-.nav-links { z-index: 95 !important; }
-.notify-panel { z-index: 94 !important; }
-
-body.nav-open { overflow: hidden !important; touch-action: none; }
-
-.nav-links a { position: relative; z-index: 1; }
-
-/* BUG FIX: premium input padding shorthand strips the padding-right
-   that .password-wrap needs to clear the show/hide toggle button, so
-   password text on login/register was rendering underneath the eye
-   icon on mobile. Restore clearance explicitly (loads last). */
-.password-wrap input { padding-right: 52px !important; }
-.input-shell input { padding-left: 48px !important; }
-
-@media (max-width: 480px) {
-  .announcement-split { display: block; }
-  .cover-thumb { width: 100%; height: 150px; margin-top: 10px; }
-}
+/* Interaction + layout protections remain intentionally last in the cascade. */
+html,body{overflow-x:hidden!important;max-width:100vw;overscroll-behavior-x:none;touch-action:pan-y}
+main,.container{max-width:100vw;overflow-x:hidden}
+.mobile-bottom-nav{touch-action:pan-y;overscroll-behavior-x:contain;max-width:calc(100vw - 24px)}
+.topbar{z-index:40!important}.header-actions{position:relative;z-index:96!important}.icon-btn,.hamburger{z-index:96!important}.nav-scrim{z-index:90!important}.nav-links{z-index:95!important}.notify-panel{z-index:94!important}
+body.nav-open{overflow:hidden!important;touch-action:none}.nav-links a{position:relative;z-index:1}
+.password-wrap input{padding-right:52px!important}.input-shell input{padding-left:48px!important}
+@media(max-width:480px){.announcement-split{display:block}.cover-thumb{width:100%;height:150px;margin-top:10px}}
