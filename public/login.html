@@ -20,26 +20,27 @@
       <form id="loginForm" class="auth-form">
         <div class="field">
           <label for="username">Username</label>
-          <div class="input-shell"><span class="input-icon" aria-hidden="true">♙</span><input id="username" autocomplete="username" required placeholder="Enter your username"></div>
+          <div class="input-shell"><span class="input-icon icon" data-icon="user" aria-hidden="true"></span><input id="username" autocomplete="username" required placeholder="Enter your username"></div>
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <div class="password-wrap input-shell"><span class="input-icon" aria-hidden="true">▣</span><input id="password" type="password" autocomplete="current-password" required placeholder="Enter your password"><button type="button" data-toggle="password" aria-label="Show password">◉</button></div>
+          <div class="password-wrap input-shell"><span class="input-icon icon" data-icon="lock" aria-hidden="true"></span><input id="password" type="password" autocomplete="current-password" required placeholder="Enter your password"><button type="button" data-toggle="password" aria-label="Show password"><span class="icon" data-icon="eye" aria-hidden="true"></span></button></div>
         </div>
         <p class="form-error" id="formError" hidden aria-live="polite"></p>
-        <button class="btn auth-submit" type="submit" id="submitBtn"><span>Login</span><b aria-hidden="true">→</b></button>
+        <button class="btn auth-submit" type="submit" id="submitBtn"><span>Login</span><span class="icon" data-icon="arrowRight" aria-hidden="true"></span></button>
       </form>
       <p class="meta auth-foot">Wala pang account?</p>
-      <a class="register-link" href="/register.html">Magrehistro <span>→</span></a>
+      <a class="register-link" href="/register.html">Magrehistro <span class="icon" data-icon="arrowRight" aria-hidden="true"></span></a>
     </div>
   </main>
   <script type="module">
-    import { setToken, setUser, apiJson, redirectBasedOnRole, getToken, refreshSession, setFormError } from '/js/common.js';
+    import { setToken, setUser, apiJson, redirectBasedOnRole, getToken, refreshSession, setFormError, hydrateIcons, icon } from '/js/common.js';
+    hydrateIcons(document);
     if (getToken()) { const user = await refreshSession(); if (user) redirectBasedOnRole(user.role); }
     document.querySelector('[data-toggle="password"]').onclick = () => {
       const input = document.getElementById('password'), button = document.querySelector('[data-toggle="password"]');
       const show = input.type === 'password'; input.type = show ? 'text' : 'password';
-      button.textContent = show ? '◌' : '◉'; button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      button.innerHTML = show ? icon('eyeOff') : icon('eye'); button.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
     };
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault(); setFormError('formError', ''); const btn = document.getElementById('submitBtn');

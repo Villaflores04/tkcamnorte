@@ -15,13 +15,13 @@
       <div class="brand-name">TK Cam Norte<small>Comment thread</small></div>
     </a>
     <div class="header-actions" id="headerActions">
-      <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span aria-hidden="true">🔔</span><em id="notifyBadge" hidden>0</em></button>
-      <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+      <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span class="icon" data-icon="bell" aria-hidden="true"></span><em id="notifyBadge" hidden>0</em></button>
+      <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false"><span class="icon" data-icon="menu" aria-hidden="true"></span></button>
     </div>
     <ul class="nav-links" id="navLinks"></ul>
   </header>
   <main class="container">
-    <p class="meta" style="margin-bottom:12px"><a href="/">‹ Balik sa anunsyo</a></p>
+    <p class="meta" style="margin-bottom:12px"><a href="/" style="display:inline-flex;align-items:center;gap:4px"><span class="icon" data-icon="chevronLeft" aria-hidden="true" style="width:14px;height:14px"></span> Balik sa anunsyo</a></p>
     <div id="post"></div>
     <section class="card">
       <h2>Mga komento</h2>
@@ -37,7 +37,7 @@
     import {
       requireAuth, initShell, apiJson, escapeHtml, formatDate, relativeTime,
       deadlineMeta, categoryLabel, renderReactions, bindReactions, getUser,
-      avatarUrl, showToast, bottomNav, coverOf, isOngoing, autoGrow
+      avatarUrl, showToast, bottomNav, coverOf, isOngoing, autoGrow, icon
     } from '/js/common.js';
 
     const user = await requireAuth();
@@ -83,18 +83,18 @@
         <div class="tag-row">
           ${isOngoing(data) ? '<span class="badge badge-soon">Ongoing</span>' : ''}
           <span class="badge badge-cat">${escapeHtml(categoryLabel(data.category))}</span>
-          ${data.is_pinned ? '<span class="badge badge-pin">PINNED</span>' : ''}
+          ${data.is_pinned ? `<span class="badge badge-pin">${icon('pin')}PINNED</span>` : ''}
         </div>
         <h3>${escapeHtml(data.title)}</h3>
         <p class="body-text">${escapeHtml(data.content)}</p>
-        ${due ? `<div class="deadline-box"><strong>${escapeHtml(due.label.toUpperCase())}</strong><span class="meta">${escapeHtml(formatDate(data.deadline_date || data.ends_at))}</span></div>` : ''}
+        ${due ? `<div class="deadline-box"><strong>${icon('clock')}${escapeHtml(due.label.toUpperCase())}</strong><span class="meta">${escapeHtml(formatDate(data.deadline_date || data.ends_at))}</span></div>` : ''}
         ${data.starts_at || data.ends_at ? `<p class="meta">Duration: ${escapeHtml(formatDate(data.starts_at) || '—')} → ${escapeHtml(formatDate(data.ends_at || data.deadline_date) || '—')}</p>` : ''}
         ${cover ? `<img class="cover-thumb" style="width:100%;height:180px;margin-top:12px" src="${escapeHtml(cover)}" alt="">` : ''}
         <div class="author-row">
           <img src="${escapeHtml(avatarUrl(author, author.full_name))}" alt="">
           <div><strong>${escapeHtml(author.full_name || 'Coordinator')}</strong><p class="meta">${relativeTime(data.created_at)}</p></div>
         </div>
-        ${files.length ? `<div class="attachments">${files.map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${escapeHtml(f.file_name || 'File')}</a>`).join('')}</div>` : ''}
+        ${files.length ? `<div class="attachments">${files.map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${icon('doc')}${escapeHtml(f.file_name || 'File')}</a>`).join('')}</div>` : ''}
         ${renderReactions(data)}
       </article>`;
       bindReactions(box);

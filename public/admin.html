@@ -12,14 +12,14 @@
 <header class="topbar">
   <a class="brand" href="/"><div class="mark">TK</div><div class="brand-name">Coordinator<small>Manage your community</small></div></a>
   <div class="header-actions" id="headerActions">
-    <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span aria-hidden="true">🔔</span><em id="notifyBadge" hidden>0</em></button>
-    <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+    <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span class="icon" data-icon="bell" aria-hidden="true"></span><em id="notifyBadge" hidden>0</em></button>
+    <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false"><span class="icon" data-icon="menu" aria-hidden="true"></span></button>
   </div>
   <ul class="nav-links" id="navLinks"></ul>
 </header>
 <main class="container">
-  <section class="admin-hero"><div class="eyebrow">Good morning</div><h1>Coordinator</h1><p>Manage announcements and members from one place.</p><div class="script">Together<br>in His<br>Purpose</div></section>
-  <section class="stats-grid"><div class="stat-card"><span class="stat-icon">◈</span><div><strong id="announcementCount">—</strong><span>Announcements</span></div></div><div class="stat-card"><span class="stat-icon">♣</span><div><strong id="memberCount">—</strong><span>Members</span></div></div></section>
+  <section class="admin-hero"><div class="eyebrow">Good morning</div><h1>Coordinator</h1><p>Manage announcements and members from one place.</p><div class="hero-orbit" aria-hidden="true"></div><div class="script">Together<br>in His<br>Purpose</div></section>
+  <section class="stats-grid"><div class="stat-card"><span class="stat-icon icon" data-icon="megaphone" aria-hidden="true"></span><div><strong id="announcementCount">—</strong><span>Announcements</span></div></div><div class="stat-card"><span class="stat-icon icon" data-icon="users" aria-hidden="true"></span><div><strong id="memberCount">—</strong><span>Members</span></div></div></section>
   <div class="tabs" role="tablist" aria-label="Coordinator sections">
     <button type="button" class="active" data-tab="compose" role="tab" aria-selected="true">Compose</button>
     <button type="button" data-tab="posts" role="tab" aria-selected="false">Anunsyo</button>
@@ -56,7 +56,7 @@
       </div>
       <div class="field upload-field">
         <label for="attachments">Attachments</label>
-        <label class="upload-zone" for="attachments"><span>⇧</span><strong>Add attachments</strong><small>PDF, images, documents · Max 8MB per file</small></label>
+        <label class="upload-zone" for="attachments"><span class="icon" data-icon="upload" aria-hidden="true"></span><strong>Add attachments</strong><small>PDF, images, documents · Max 8MB per file</small></label>
         <input id="attachments" type="file" multiple hidden>
       </div>
       <p class="meta" id="existingFiles"></p>
@@ -77,25 +77,23 @@
   </section>
 </main>
 <nav class="mobile-bottom-nav" aria-label="Admin navigation">
-  <a href="/"><span class="nav-icon">⌂</span><span>Home</span></a>
-  <a class="active" href="#panel-compose"><span class="nav-icon">✎</span><span>Compose</span></a>
-  <a href="#panel-posts"><span class="nav-icon">◈</span><span>Anunsyo</span></a>
-  <a href="#panel-members"><span class="nav-icon">♣</span><span>Members</span></a>
-  <a href="/profile.html"><span class="nav-icon">♙</span><span>Profile</span></a>
+  <a href="/"><span class="nav-icon icon" data-icon="home" aria-hidden="true"></span><span>Home</span></a>
+  <a class="active" href="#panel-compose"><span class="nav-icon icon" data-icon="edit" aria-hidden="true"></span><span>Compose</span></a>
+  <a href="#panel-posts"><span class="nav-icon icon" data-icon="megaphone" aria-hidden="true"></span><span>Anunsyo</span></a>
+  <a href="#panel-members"><span class="nav-icon icon" data-icon="users" aria-hidden="true"></span><span>Members</span></a>
+  <a href="/profile.html"><span class="nav-icon icon" data-icon="user" aria-hidden="true"></span><span>Profile</span></a>
 </nav>
 <style>
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
-.stat-card{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid var(--line);border-radius:var(--radius-md);background:#fff;box-shadow:var(--shadow-sm);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
-.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
-.stat-icon{flex:0 0 44px;width:44px;height:44px;display:grid;place-items:center;border-radius:14px;background:linear-gradient(150deg,var(--blue-soft),var(--blue-soft-2));font-size:20px;color:var(--blue-700)}
-.stat-card strong{display:block;font:800 28px/1 Outfit,sans-serif;color:var(--navy-900)}
-.stat-card span{color:var(--muted);font-size:12px;font-weight:700}
-.upload-zone{min-height:108px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:16px;border:1.5px dashed var(--blue-500);border-radius:var(--radius-md);background:var(--blue-soft);color:var(--blue-700);cursor:pointer;text-align:center;transition:background .15s var(--ease),border-color .15s var(--ease)}
-.upload-zone:hover{background:var(--blue-soft-2);border-color:var(--blue-700)}
-.upload-zone span{font-size:20px}
-.upload-zone strong{font-size:13.5px}
-.upload-zone small{color:var(--muted);font-size:11.5px}
-.admin-actions{margin-top:6px}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.stat-card{display:flex;align-items:center;gap:12px;padding:15px;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:var(--shadow-sm)}
+.stat-icon{flex:0 0 40px;width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--blue-50);color:var(--blue-700)}
+.stat-icon .icon,.stat-icon svg{width:19px;height:19px}
+.stat-card strong{display:block;font:800 28px/1 Outfit,sans-serif;color:var(--blue-900)}
+.stat-card span{font-size:12px;color:var(--muted);font-weight:700}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.upload-zone{min-height:105px!important;display:flex!important;flex-direction:column!important;align-items:center;justify-content:center;gap:6px;padding:15px;border:1.5px dashed #9fc1f4;border-radius:18px;background:var(--blue-50);color:var(--blue-700);cursor:pointer;text-align:center}
+.upload-zone .icon{width:22px;height:22px}
+@media(max-width:380px){.form-grid{grid-template-columns:1fr}}
 </style>
 <script type="module">
 import {requireAuth,initShell,apiJson,uploadFiles,escapeHtml,formatDate,categoryLabel,showToast,setFormError,deadlineMeta} from '/js/common.js';

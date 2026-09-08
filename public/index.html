@@ -15,8 +15,8 @@
       <div class="brand-name">TK Cam Norte<small>Teatro Kristiano</small></div>
     </a>
     <div class="header-actions" id="headerActions">
-      <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span aria-hidden="true">🔔</span><em id="notifyBadge" hidden>0</em></button>
-      <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false">☰</button>
+      <button class="icon-btn" id="notifyBtn" type="button" aria-label="Notifications"><span class="icon" data-icon="bell" aria-hidden="true"></span><em id="notifyBadge" hidden>0</em></button>
+      <button class="hamburger" id="hamburger" type="button" aria-label="Menu" aria-expanded="false"><span class="icon" data-icon="menu" aria-hidden="true"></span></button>
     </div>
     <ul class="nav-links" id="navLinks"></ul>
   </header>
@@ -25,6 +25,7 @@
       <div class="eyebrow">Magandang araw,</div>
       <h1 id="welcomeName">Kaibigan</h1>
       <p>Stay updated sa mga importanteng announcement ng TK Cam Norte.</p>
+      <div class="hero-orbit" aria-hidden="true"></div>
       <div class="script" aria-hidden="true">Together<br>in His<br>Purpose</div>
     </section>
     <section class="section-head">
@@ -40,7 +41,7 @@
     import {
       requireAuth, initShell, apiJson, escapeHtml, formatDate, relativeTime,
       deadlineMeta, categoryLabel, CATEGORIES, renderReactions, bindReactions,
-      isAdmin, avatarUrl, firstName, bottomNav, coverOf, isOngoing
+      isAdmin, avatarUrl, firstName, bottomNav, coverOf, isOngoing, icon
     } from '/js/common.js';
 
     const user = await requireAuth();
@@ -80,13 +81,13 @@
       const cover = coverOf(a);
       const count = a.comment_count || 0;
       const admin = isAdmin();
-      const deadline = due ? `<div class="deadline-box"><strong>◷ ${escapeHtml(due.label.toUpperCase())}</strong><div class="bar"><span style="width:${progressWidth(due)}%"></span></div><span class="meta">${escapeHtml(formatDate(a.deadline_date || a.ends_at))}</span></div>` : '';
+      const deadline = due ? `<div class="deadline-box"><strong>${icon('clock')}${escapeHtml(due.label.toUpperCase())}</strong><div class="bar"><span style="width:${progressWidth(due)}%"></span></div><span class="meta">${escapeHtml(formatDate(a.deadline_date || a.ends_at))}</span></div>` : '';
       const docs = files.filter((f) => !/\.(png|jpe?g|webp|gif)$/i.test(f.file_name || ''));
       return `<article class="card announcement cat-${escapeHtml(a.category)} ${a.is_pinned ? 'pinned' : ''}" data-post="${escapeHtml(a.id)}">
         <div class="tag-row">
           ${isOngoing(a) ? '<span class="badge badge-soon">Ongoing</span>' : ''}
           <span class="badge badge-cat">${escapeHtml(categoryLabel(a.category))}</span>
-          ${a.is_pinned ? '<span class="badge badge-pin">PINNED</span>' : ''}
+          ${a.is_pinned ? `<span class="badge badge-pin">${icon('pin')}PINNED</span>` : ''}
         </div>
         <div class="announcement-split">
           <div>
@@ -103,10 +104,10 @@
             <p class="meta">${relativeTime(a.created_at)}</p>
           </div>
         </div>
-        ${docs.length ? `<div class="attachments">${docs.map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">📄 ${escapeHtml(f.file_name || 'File')}</a>`).join('')}</div>` : ''}
+        ${docs.length ? `<div class="attachments">${docs.map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${icon('doc')}${escapeHtml(f.file_name || 'File')}</a>`).join('')}</div>` : ''}
         <div class="card-foot">
           ${renderReactions(a)}
-          <a class="see-all" href="/announcement.html?id=${encodeURIComponent(a.id)}">💬 ${count} comment${count === 1 ? '' : 's'} · See all ›</a>
+          <a class="see-all" href="/announcement.html?id=${encodeURIComponent(a.id)}">${icon('chat')}${count} comment${count === 1 ? '' : 's'} · See all</a>
         </div>
         ${admin ? `<div class="btn-row single"><a class="btn btn-ghost" href="/admin.html?edit=${encodeURIComponent(a.id)}">Edit</a></div>` : ''}
       </article>`;
