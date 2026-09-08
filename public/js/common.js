@@ -13,6 +13,45 @@ export function categoryLabel(id) {
   return CATEGORIES.find((c) => c.id === id)?.label || id || '';
 }
 
+const ICONS = {
+  user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 19c1.4-3.2 4-5 7-5s5.6 1.8 7 5"/></svg>',
+  users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 19c1.2-2.8 3.4-4.2 6-4.2"/><circle cx="16.5" cy="9" r="2.4"/><path d="M14 19c.6-2.3 2.2-3.6 4.5-3.6 1.3 0 2.4.4 3.5 1.2"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+  eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+  eyeOff: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 12 15a3 3 0 0 0 2.4-1.2"/><path d="M9.9 5.2A11 11 0 0 1 12 5c6.5 0 10 7 10 7a16.6 16.6 0 0 1-3.2 3.8"/><path d="M6.1 6.1C3.6 7.9 2 12 2 12s3.5 7 10 7a10.6 10.6 0 0 0 4.2-.8"/></svg>',
+  arrowRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10 21a2 2 0 0 0 4 0"/></svg>',
+  menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.2"/></svg>',
+  doc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg>',
+  chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 16.5A7.5 7.5 0 1 1 12 20H6l-1 2z"/></svg>',
+  chevronLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>',
+  chevronRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+  music: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2.4"/><circle cx="17" cy="16" r="2.4"/></svg>',
+  sparkles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.4 4.2L18 8.6l-4.6 1.4L12 14l-1.4-4L6 8.6l4.6-1.4z"/><path d="M19 14l.6 1.8L21.4 16.4 19.6 17l-.6 1.8-.6-1.8-1.8-.6 1.8-.6z"/></svg>',
+  clapper: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h18v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 10l3.2-6.4L20.5 10"/><path d="M8 3.6l1.4 2.8M12 5.4l1.3 2.6"/></svg>',
+  heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-9.2A4.2 4.2 0 0 1 12 8a4.2 4.2 0 0 1 7 2.8C19 15.6 12 20 12 20z"/></svg>',
+  megaphone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v4l13 4V6L4 10z"/><path d="M7.5 14.5v3.2A2.3 2.3 0 0 0 11 20"/></svg>',
+  upload: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V5"/><path d="M7 10l5-5 5 5"/><path d="M5 19h14"/></svg>',
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16z"/><path d="M13 7l4 4"/></svg>'
+};
+
+export function icon(name) {
+  return ICONS[name] || ICONS.sparkles;
+}
+
+export function hydrateIcons(root = document) {
+  root.querySelectorAll('[data-icon]').forEach((el) => {
+    const svg = icon(el.dataset.icon);
+    if (!svg) return;
+    el.innerHTML = svg;
+    el.dataset.hydrated = '1';
+  });
+}
+
 export function setToken(token) {
   localStorage.setItem('token', token);
 }
@@ -129,19 +168,13 @@ export function redirectBasedOnRole() {
 export function escapeHtml(str) {
   if (str == null) return '';
   return String(str)
-    .replace(/&/g, '&')
-    .replace(/</g, '<')
-    .replace(/>/g, '>')
-    .replace(/"/g, '"')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
 
-// BUG FIX: "YYYY-MM-DD" strings are parsed by `new Date()` as UTC midnight.
-// Once formatted/compared in the visitor's local timezone that can land on
-// the previous calendar day (anyone west of UTC, e.g. the Americas), so
-// deadlines and calendar dates could silently show a day early. Build
-// date-only values in local time instead; anything with a time component
-// (full ISO timestamps like created_at) still parses normally.
 export function parseDateValue(value) {
   if (value instanceof Date) return value;
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -278,7 +311,7 @@ export function initShell(user, options = {}) {
       notify.className = 'icon-btn';
       notify.type = 'button';
       notify.setAttribute('aria-label', 'Notifications');
-      notify.innerHTML = '<span aria-hidden="true">🔔</span><em id="notifyBadge" hidden>0</em>';
+      notify.innerHTML = `${icon('bell')}<em id="notifyBadge" hidden>0</em>`;
       actions.appendChild(notify);
     }
     actions.appendChild(hamburger);
@@ -288,7 +321,7 @@ export function initShell(user, options = {}) {
     notify.className = 'icon-btn';
     notify.type = 'button';
     notify.setAttribute('aria-label', 'Notifications');
-    notify.innerHTML = '<span aria-hidden="true">🔔</span><em id="notifyBadge" hidden>0</em>';
+    notify.innerHTML = `${icon('bell')}<em id="notifyBadge" hidden>0</em>`;
     actions.insertBefore(notify, hamburger);
   }
 
@@ -306,7 +339,7 @@ export function initShell(user, options = {}) {
     notes.id = 'notifyPanel';
     notes.className = 'notify-panel';
     notes.hidden = true;
-    notes.innerHTML = '<header><strong>Notifications</strong><button type="button" id="notifyClose" aria-label="Close">✕</button></header><div id="notifyList" class="notify-list"><p class="meta">Walang bagong notification.</p></div>';
+    notes.innerHTML = '<header><strong>Notifications</strong><button type="button" id="notifyClose" aria-label="Close">' + icon('x') + '</button></header><div id="notifyList" class="notify-list"><p class="meta">Walang bagong notification.</p></div>';
     document.body.appendChild(notes);
   }
 
@@ -316,7 +349,7 @@ export function initShell(user, options = {}) {
     navLinks.classList.remove('show');
     scrim.classList.remove('show');
     hamburger.setAttribute('aria-expanded', 'false');
-    hamburger.textContent = '☰';
+    hamburger.innerHTML = icon('menu');
     if (notes.hidden) lockBody(false);
   };
   const openNav = () => {
@@ -324,7 +357,7 @@ export function initShell(user, options = {}) {
     navLinks.classList.add('show');
     scrim.classList.add('show');
     hamburger.setAttribute('aria-expanded', 'true');
-    hamburger.textContent = '✕';
+    hamburger.innerHTML = icon('x');
     lockBody(true);
   };
   const toggleNav = (e) => {
@@ -396,6 +429,7 @@ export function initShell(user, options = {}) {
     location.href = '/login.html';
   });
 
+  hydrateIcons(document);
   if (options.loadNotifications !== false) loadNotifications();
 }
 
@@ -425,9 +459,9 @@ export async function loadNotifications() {
 
 export function renderReactions(announcement) {
   const rx = announcement.reactions || { amen: 0, heart: 0, clap: 0, mine: null };
-  const btn = (type, icon, label) => `
+  const btn = (type, glyph, label) => `
     <button type="button" class="rx-btn ${rx.mine === type ? 'active' : ''}" data-rx="${type}" data-id="${announcement.id}" aria-pressed="${rx.mine === type}" aria-label="${label}">
-      <span>${icon}</span><em>${rx[type] || 0}</em>
+      <span>${glyph}</span><em>${rx[type] || 0}</em>
     </button>`;
   return `
     <div class="rx-row" data-rx-row="${announcement.id}">
@@ -493,10 +527,10 @@ export function autoGrow(el, maxPx = 160) {
 export function bottomNav(active) {
   return `
     <nav class="mobile-bottom-nav" aria-label="Main navigation">
-      <a class="${active === 'home' ? 'active' : ''}" href="/"><span class="nav-icon">⌂</span><span>Home</span></a>
-      <a class="${active === 'feed' ? 'active' : ''}" href="/#announcementsList"><span class="nav-icon">◈</span><span>Anunsyo</span></a>
-      <a class="${active === 'calendar' ? 'active' : ''}" href="/calendar.html"><span class="nav-icon">▦</span><span>Kalendaryo</span></a>
-      <a class="${active === 'groups' ? 'active' : ''}" href="/groups.html"><span class="nav-icon">♧</span><span>Mga Grupo</span></a>
-      <a class="${active === 'profile' ? 'active' : ''}" href="/profile.html"><span class="nav-icon">♙</span><span>Profile</span></a>
+      <a class="${active === 'home' ? 'active' : ''}" href="/">${icon('home')}<span>Home</span></a>
+      <a class="${active === 'feed' ? 'active' : ''}" href="/#announcementsList">${icon('megaphone')}<span>Anunsyo</span></a>
+      <a class="${active === 'calendar' ? 'active' : ''}" href="/calendar.html">${icon('clock')}<span>Kalendaryo</span></a>
+      <a class="${active === 'groups' ? 'active' : ''}" href="/groups.html">${icon('users')}<span>Mga Grupo</span></a>
+      <a class="${active === 'profile' ? 'active' : ''}" href="/profile.html">${icon('user')}<span>Profile</span></a>
     </nav>`;
 }
