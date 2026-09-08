@@ -1,0 +1,1 @@
+// Placeholder for upcoming 3D globe integration. This file is intentionally lightweight and does not change existing behavior.
