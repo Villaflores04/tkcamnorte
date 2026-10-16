@@ -86,7 +86,7 @@
 </nav>
 
 <script type="module">
-import {requireAuth,initShell,apiJson,uploadFiles,escapeHtml,formatDate,categoryLabel,showToast,setFormError,deadlineMeta} from '/js/common.js';
+import {requireAuth,initShell,apiJson,uploadFiles,escapeHtml,formatDate,categoryLabel,showToast,setFormError,deadlineMeta,getCommunityData} from '/js/common.js';
 const user = await requireAuth('admin'); if (!user) throw new Error('auth'); initShell(user);
 const params = new URLSearchParams(location.search);
 let publishing = false;
@@ -224,7 +224,9 @@ document.getElementById('announcementForm').addEventListener('submit', async (e)
 async function loadPosts() {
   const box = document.getElementById('adminAnnouncementsList');
   box.innerHTML = '<div class="card empty">Loading announcements…</div>';
-  const { ok, data, error } = await apiJson('/announcements');
+  const result = await getCommunityData();
+  const { ok, error } = result;
+  const data = result.data?.announcements;
   if (!ok) { box.innerHTML = `<div class="card">${escapeHtml(error)}</div>`; return; }
   if (!data?.length) { box.innerHTML = '<div class="card empty">Wala pang anunsyo.</div>'; return; }
   box.innerHTML = data.map((a) => {
@@ -269,7 +271,9 @@ async function loadUsers() {
 }
 loadUsers();
 (async () => {
-  const { ok, data } = await apiJson('/announcements');
+  const result = await getCommunityData();
+  const { ok } = result;
+  const data = result.data?.announcements;
   if (ok && Array.isArray(data)) document.getElementById('announcementCount').textContent = data.length;
 })();
 </script>

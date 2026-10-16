@@ -1,6 +1,30 @@
 import { initParallax } from './motion.js';
 import { activityStatus, isCurrent, versionOf, todayKey } from './dates.js';
 const API_BASE = '/api';
+const pendingGets = new Map();
+let communitySnapshot = null;
+let dataGeneration = 0;
+
+export function invalidateCommunityData() {
+  communitySnapshot = null;
+  pendingGets.clear();
+  dataGeneration++;
+}
+
+export function getCommunityData({ force = false } = {}) {
+  const token = getToken();
+  if (!force && communitySnapshot?.token === token && (communitySnapshot.pending || communitySnapshot.expires > Date.now())) return communitySnapshot.promise;
+  const snapshot = { token, expires: 0, pending: true, promise: null };
+  snapshot.promise = apiJson('/announcements?resource=hub').then(result => {
+    snapshot.pending = false;
+    snapshot.expires = Date.now() + 15000;
+    if (!result.ok && communitySnapshot === snapshot) communitySnapshot = null;
+    return result;
+  });
+  communitySnapshot = snapshot;
+  return snapshot.promise;
+}
+
 
 export const CATEGORIES = [
   { id: 'all', label: 'Lahat' },
@@ -60,6 +84,7 @@ export function hydrateIcons(root = document) {
 }
 
 export function setToken(token) {
+  invalidateCommunityData();
   localStorage.setItem('token', token);
 }
 
@@ -81,6 +106,7 @@ export function setUser(user) {
 }
 
 export function clearSession() {
+  invalidateCommunityData();
   localStorage.removeItem('token');
   localStorage.removeItem('user');
 }
@@ -111,11 +137,14 @@ export async function apiFetch(endpoint, options = {}) {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   let response;
+  const timeout = !options.signal && (options.method || 'GET').toUpperCase() === 'GET' ? new AbortController() : null;
+  const timeoutId = timeout ? setTimeout(() => timeout.abort(), 15000) : null;
   try {
-    response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
-  } catch {
+    response = await fetch(`${API_BASE}${endpoint}`, { ...options, headers, ...(timeout ? { signal: timeout.signal } : {}) });
+  } catch (error) {
+    if (error.name === 'AbortError') throw new Error('The server is taking longer than expected. Please try again.');
     throw new Error('Hindi makakonekta sa server. Suriin ang internet connection at subukan muli.');
-  }
+  } finally { if (timeoutId) clearTimeout(timeoutId); }
 
   if (response.status === 401) {
     clearSession();
@@ -127,7 +156,7 @@ export async function apiFetch(endpoint, options = {}) {
   return response;
 }
 
-export async function apiJson(endpoint, options = {}) {
+async function readJson(endpoint, options = {}) {
   try {
     const res = await apiFetch(endpoint, options);
     if (!res) return { ok: false, status: 401, data: null, error: 'Session expired. Mag-login muli.' };
@@ -142,6 +171,23 @@ export async function apiJson(endpoint, options = {}) {
   } catch (err) {
     return { ok: false, status: 0, data: null, error: err.message || 'Network error' };
   }
+}
+
+// Coalesce identical reads on this page; never share results between account tokens.
+export function apiJson(endpoint, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  if (method !== 'GET') {
+    invalidateCommunityData();
+    // Also invalidate on completion: a read started during a write must not survive it.
+    return readJson(endpoint, options).finally(invalidateCommunityData);
+  }
+  const key = `${dataGeneration}:${getToken() || ''}:${endpoint}`;
+  if (!pendingGets.has(key)) {
+    const request = readJson(endpoint, options);
+    pendingGets.set(key, request);
+    request.finally(() => { if (pendingGets.get(key) === request) pendingGets.delete(key); });
+  }
+  return pendingGets.get(key);
 }
 
 export async function refreshSession() {
@@ -159,7 +205,13 @@ export async function requireAuth(role) {
   }
   const user = await refreshSession();
   if (!user) {
-    location.href = '/login.html';
+    // A network outage is not an expired session. Keep a retry path on the page.
+    if (!getToken()) return null;
+    const main = document.querySelector('main');
+    if (main) {
+      main.innerHTML = '<div class="card empty" role="alert"><h2>Unable to connect</h2><p>Please check your connection and try again.</p><button class="btn" id="retrySession" type="button">Try again</button></div>';
+      document.getElementById('retrySession').onclick = () => location.reload();
+    }
     return null;
   }
   if (role === 'admin' && user.role !== 'admin') {
@@ -391,8 +443,12 @@ export function initShell(user, options = {}) {
 
   if (shellInitialized && shellCleanup) shellCleanup();
 
+  // A sticky header creates a stacking context. Keep its drawer outside that context.
+  if (navLinks.parentElement !== document.body) document.body.appendChild(navLinks);
   const closeNav = () => {
     navLinks.classList.remove('show');
+    navLinks.removeAttribute('aria-modal');
+    navLinks.removeAttribute('role');
     scrim.classList.remove('show');
     hamburger.setAttribute('aria-expanded', 'false');
     hamburger.innerHTML = icon('menu');
@@ -401,11 +457,14 @@ export function initShell(user, options = {}) {
   const openNav = () => {
     notes.hidden = true;
     navLinks.classList.add('show');
+    navLinks.setAttribute('role', 'dialog');
+    navLinks.setAttribute('aria-modal', 'true');
+    navLinks.setAttribute('aria-label', 'Main menu');
     scrim.classList.add('show');
     hamburger.setAttribute('aria-expanded', 'true');
     hamburger.innerHTML = icon('x');
     lockBody(true);
-    navLinks.querySelector('a')?.focus();
+    document.getElementById('closeMenuBtn')?.focus();
   };
   const toggleNav = (e) => {
     e?.preventDefault();
@@ -433,15 +492,22 @@ export function initShell(user, options = {}) {
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
     }
     if (e.key === 'Escape') {
+      const fromMenu = navLinks.classList.contains('show');
       closeNav();
       closeNotes();
-      document.getElementById('notifyBtn')?.focus();
+      (fromMenu ? hamburger : document.getElementById('notifyBtn'))?.focus();
     }
   };
   const onScrim = () => {
+    const fromMenu = navLinks.classList.contains('show');
     closeNav();
     closeNotes();
+    (fromMenu ? hamburger : document.getElementById('notifyBtn'))?.focus();
   };
+  const onResize = () => {
+    if (navLinks.classList.contains('show') && window.matchMedia('(min-width: 1001px)').matches) closeNav();
+  };
+  window.addEventListener('resize', onResize, { passive: true });
 
   hamburger.addEventListener('click', toggleNav);
   scrim.addEventListener('click', onScrim);
@@ -457,11 +523,13 @@ export function initShell(user, options = {}) {
     hamburger.removeEventListener('click', toggleNav);
     scrim.removeEventListener('click', onScrim);
     document.removeEventListener('keydown', onKeydown);
+    window.removeEventListener('resize', onResize);
   };
   shellInitialized = true;
 
   const path = location.pathname;
   navLinks.innerHTML = user ? `
+    <li class="drawer-heading"><strong>Main menu</strong><button type="button" class="icon-btn" id="closeMenuBtn" aria-label="Close menu">${icon('x')}</button></li>
     <li class="nav-user">
       <img class="nav-avatar" src="${escapeHtml(avatarUrl(user))}" alt="">
       <strong>${escapeHtml(user.fullName || user.username)}</strong>
@@ -477,6 +545,8 @@ export function initShell(user, options = {}) {
     <li><a href="/login.html">Login</a></li>
     <li><a href="/register.html">Register</a></li>
   `;
+
+  document.getElementById('closeMenuBtn')?.addEventListener('click', () => { closeNav(); hamburger.focus(); });
 
   document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
     e.preventDefault();
@@ -502,14 +572,14 @@ export async function loadNotifications() {
   const list = document.getElementById('notifyList');
   const badge = document.getElementById('notifyBadge');
   if (!list) return;
-  const [posts, receipts] = await Promise.all([apiJson('/announcements'), apiJson('/announcements?resource=receipts')]);
-  if (!posts.ok || !receipts.ok) {
+  const result = await getCommunityData();
+  if (!result.ok || !result.data.trackingAvailable) {
     list.innerHTML = '<p class="meta">Updates could not be loaded. Open Announcements to try again.</p>';
     if (badge) badge.hidden = true;
     return;
   }
-  const read = new Map(receipts.data.map(r => [r.announcement_id, r.read_version]));
-  const unread = posts.data.filter(p => !isCurrent(read.get(p.id), p));
+  const read = new Map(result.data.receipts.map(r => [r.announcement_id, r.read_version]));
+  const unread = result.data.announcements.filter(p => !isCurrent(read.get(p.id), p));
   if (badge) { badge.textContent = unread.length > 99 ? '99+' : String(unread.length); badge.hidden = unread.length === 0; }
   list.innerHTML = unread.length ? unread.slice(0, 30).map(a => `
     <a class="notify-item" href="/announcement.html?id=${encodeURIComponent(a.id)}">

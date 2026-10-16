@@ -4,20 +4,6 @@ import { requireUser, requireAdmin, CATEGORIES } from '../_lib/auth.js';
 import { supabase, ANNOUNCEMENT_SELECT } from '../_lib/supabase.js';
 import { attachReactions } from '../_lib/reactions.js';
 
-async function attachCommentCounts(list) {
-  if (!list?.length) return list || [];
-  const ids = list.map((a) => a.id);
-  const { data } = await supabase
-    .from('comments')
-    .select('announcement_id')
-    .in('announcement_id', ids);
-  const counts = {};
-  for (const row of data || []) {
-    counts[row.announcement_id] = (counts[row.announcement_id] || 0) + 1;
-  }
-  return list.map((a) => ({ ...a, comment_count: counts[a.id] || 0 }));
-}
-
 function announcementPayload(body, userId, isCreate = false) {
   const { title, content, category, deadlineDate, startsAt, endsAt, isPinned, coverImageUrl } = body || {};
   const row = {};
@@ -44,7 +30,9 @@ export default async function handler(req, res) {
   if (!session) return;
 
   if (req.method === 'GET') {
-    const { category, id } = req.query || {};
+    const { category, id, resource } = req.query || {};
+    // The shell and dashboard consume the same snapshot instead of refetching it.
+    const hub = resource === 'hub';
     if (id) {
       const { data, error } = await supabase
         .from('announcements')
@@ -53,8 +41,7 @@ export default async function handler(req, res) {
         .single();
       if (error) return res.status(404).json({ error: 'Hindi nahanap ang anunsyo.' });
       const [withRx] = await attachReactions([data], session.userId);
-      const [withCount] = await attachCommentCounts([withRx]);
-      return res.status(200).json(withCount);
+      return res.status(200).json(withRx);
     }
 
     let query = supabase
@@ -70,11 +57,18 @@ export default async function handler(req, res) {
       query = query.eq('category', category);
     }
 
-    const { data, error } = await query;
-    if (error) return res.status(500).json({ error: error.message });
+    const receiptQuery = hub
+      ? supabase.from('announcement_receipts').select('announcement_id, read_version, acknowledged_version').eq('user_id', session.userId)
+      : Promise.resolve({ data: [], error: null });
+    const [{ data, error }, receiptResult] = await Promise.all([query, receiptQuery]);
+    if (error) return res.status(500).json({ error: 'Unable to load announcements. Please try again.' });
     const withRx = await attachReactions(data || [], session.userId);
-    const withCount = await attachCommentCounts(withRx);
-    return res.status(200).json(withCount);
+    if (hub) return res.status(200).json({
+      announcements: withRx,
+      receipts: receiptResult.error ? [] : receiptResult.data || [],
+      trackingAvailable: !receiptResult.error
+    });
+    return res.status(200).json(withRx);
   }
 
   if (req.method === 'POST') {

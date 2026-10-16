@@ -114,3 +114,14 @@ html:not(.dark) .community-note{background:linear-gradient(130deg,#edf5ff,#fff);
 @media(prefers-reduced-motion:reduce){
  .stage-layer,.auth-orbit,.auth-gold-ribbon,.auth-star{transform:none!important}.quick-stat:hover{transform:none}
 }
+
+/* Root-level drawer stays above the page scrim instead of inheriting the header's layer. */
+.drawer-heading{display:none}
+@media(max-width:1000px){
+ .nav-links{z-index:55;top:0;bottom:0;background:var(--surface);opacity:1;max-height:100dvh;overflow-y:auto;padding-top:max(18px,env(safe-area-inset-top));padding-bottom:max(22px,env(safe-area-inset-bottom));box-shadow:-12px 0 36px #1025441a}
+ .nav-links.show{display:flex}
+ .drawer-heading{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:0 8px 18px;color:var(--ink);font-size:15px;border-bottom:1px solid var(--line);margin-bottom:10px}
+ .drawer-heading .icon-btn{width:44px;height:44px;min-width:44px}
+ .nav-scrim{z-index:40;background:#10254438}
+ .nav-links .nav-user{padding-bottom:8px}
+}

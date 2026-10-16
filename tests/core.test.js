@@ -51,3 +51,29 @@ test('password changes and account deletion revoke existing tokens',async()=>{
 test('database outages fail closed without pretending a session is invalid',async()=>{
  account(null,{message:'unavailable'});const res=response();assert.equal(await requireUser(request(generateToken('x','user','hash1')),res),null);assert.equal(res.code,503);
 });
+
+test('current profile lookup is reused within one request only',async()=>{
+ let reads=0;
+ supabase.from=()=>{reads++;return {select(){return this;},eq(){return this;},async maybeSingle(){return {data:{id:'x',role:'admin',password_hash:'hash1',full_name:'Coordinator',username:'owner'},error:null};}};};
+ const req=request(generateToken('x','admin','hash1'));const res=response();
+ const first=await requireUser(req,res);const second=await requireAdmin(req,res);
+ assert.equal(reads,1);assert.equal(first.user.fullName,'Coordinator');assert.equal(first,second);
+ await requireUser(request(generateToken('x','admin','hash1')),response());assert.equal(reads,2);
+});
+test('account endpoint uses the already-verified profile without another database read',async()=>{
+ const {default:me}=await import('../api/auth/me.js');let reads=0;
+ supabase.from=()=>{reads++;return {select(){return this;},eq(){return this;},async maybeSingle(){return {data:{id:'x',role:'user',password_hash:'hash1',full_name:'Member',username:'member'},error:null};}};};
+ const req={...request(generateToken('x','user','hash1')),method:'GET'};const res=response();await me(req,res);
+ assert.equal(reads,1);assert.equal(res.body.fullName,'Member');assert.equal(res.body.password_hash,undefined);
+});
+test('shared hub queries posts and receipts together and skips unused comment counts',async()=>{
+ const {default:hub}=await import('../api/announcements/index.js');const tables=[];
+ supabase.from=table=>{
+  tables.push(table);
+  const result={data:table==='users'?{id:'x',role:'user',password_hash:'hash1'}:table==='announcements'?[{id:'one',title:'Practice'}]:[],error:null};
+  return {select(){return this;},eq(){return this;},order(){return this;},in(){return this;},async maybeSingle(){return result;},then(resolve,reject){return Promise.resolve(result).then(resolve,reject);}};
+ };
+ const req={...request(generateToken('x','user','hash1')),method:'GET',query:{resource:'hub'}};const res=response();await hub(req,res);
+ assert.equal(res.code,200);assert.equal(res.body.announcements[0].title,'Practice');assert.equal(res.body.trackingAvailable,true);
+ assert.deepEqual(tables.sort(),['announcement_reactions','announcement_receipts','announcements','users']);
+});
