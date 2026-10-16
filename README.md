@@ -39,20 +39,22 @@ The checks parse all API, browser module and inline-page JavaScript. Tests cover
 Drafts are stored on the current device and do not retain selected files. Shared devices should clear drafts when finished. The preview covers text and schedule fields; uploaded-media preview is not included. Notifications are in-app unread updates, not push notifications. Audience targeting, attendance RSVP, scheduled publishing, automatic archiving, durable login rate limiting and server-side feed pagination remain future work. The legacy Groups URL remains informational and is removed from primary navigation until real groups are configured.
 
 
-## Coordinator access
+## Secret-code user management
 
-The invitation code permits member registration only; it does not grant coordinator permissions. A signed-in account with `users.role = 'admin'` sees **Coordinator** in the menu and can open `/admin.html`. Members remain blocked by the API even if they type that URL.
+1. In Vercel → Project Settings → Environment Variables, add `OWNER_ACCESS_CODE` with a private random value of **20–256 characters**. Configure Production and Preview as needed, then redeploy. The existing `JWT_SECRET` must also remain configured. No code is embedded in the frontend or repository, and management remains locked when the variable is missing or too short.
+2. Open **Secret code** at the bottom of Sign in / Create account, or in the member menu. Enter the code at `/access.html`. Success opens `/user-management.html`.
+3. Create and edit users, set initial/replacement passwords, promote members to Admin, demote admins, and remove eligible accounts. Admins sign in through the normal member form; **Coordinator → Compose** lets them publish announcements. Admins can read the member directory, but role changes and user CRUD now require the separate secret-code session.
+4. Use **Lock session** when finished. Management expires after 15 minutes. Rotating `OWNER_ACCESS_CODE` invalidates existing management sessions after redeployment. This code is separate from `MEMBER_INVITE_CODE`, which permits member registration only.
 
-An existing coordinator can use **Coordinator → Members → Promote**. If the site owner needs to promote their own already-registered account, use the trusted Supabase SQL editor with the exact username from Account:
+The management session uses a signed, short-lived, HttpOnly/Secure/SameSite=Strict cookie scoped to `/api/users`. It is not saved in localStorage or sessionStorage. Every user-management request verifies the cookie; writes also verify the request origin. Ordinary member/admin bearer tokens cannot substitute for it. The existing `/api/users/promote` function serves the unlock/session and CRUD routes, so this feature adds no serverless function or database migration.
 
-```sql
-update public.users
-set role = 'admin'
-where username = 'YOUR_EXACT_USERNAME'
-returning username, role;
-```
+User lists never include password hashes. New passwords are hashed; changing them invalidates old member sessions. Deletion is a single database statement, using existing cascading foreign keys. Accounts referenced by announcement history cannot be removed; their records and attribution are preserved. Promote another user before removing or demoting the final admin. The pre-check is a convenience safeguard, not a transactional lock across concurrent management requests; the independent secret-code console can restore an admin if needed.
 
-Replace the placeholder before running it, check that only the intended account is returned, then reload the site or sign in again. No shared/default admin password is provided.
+Failed-code attempts have bounded per-instance burst protection (five failures per minute). This is not a distributed rate limiter; use a long random secret and configure platform-level limits if needed. User-management sessions are independent of member sign-in. Locking removes the browser's cookie; existing copies expire after 15 minutes or are invalidated when the code rotates.
+
+## Sign-in and registration refresh
+
+The public entrance now uses a blue-and-gold desktop layout with layered TK artwork, a compact mobile banner, clearer forms, accessible password toggles, invitation-code guidance and a quiet Secret code link at the bottom. Member invitation validation is retained. Incorrect credentials display their error without being mistaken for an expired session.
 
 ## Reload and drawer fixes
 

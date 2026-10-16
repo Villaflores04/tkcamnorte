@@ -17,7 +17,7 @@
   <ul class="nav-links" id="navLinks"></ul>
 </header>
 <main class="container">
-  <section class="admin-hero"><div class="eyebrow">COMMUNITY WORKSPACE</div><h1>Coordinator</h1><p>Manage announcements and members from one place.</p></section>
+  <section class="admin-hero"><div class="eyebrow">COMMUNITY WORKSPACE</div><h1>Coordinator</h1><p>Publish updates and manage announcements for your community.</p></section>
   <section class="stats-grid"><div class="stat-card"><span class="stat-icon icon" data-icon="megaphone" aria-hidden="true"></span><div><strong id="announcementCount">—</strong><span>Announcements</span></div></div><div class="stat-card"><span class="stat-icon icon" data-icon="users" aria-hidden="true"></span><div><strong id="memberCount">—</strong><span>Members</span></div></div></section>
   <div class="tabs" role="tablist" aria-label="Coordinator sections">
     <button type="button" class="active" data-tab="compose" role="tab" aria-selected="true">Compose</button>
@@ -73,7 +73,7 @@
     <div id="adminAnnouncementsList"></div>
   </section>
   <section class="panel" id="panel-members" hidden>
-    <div class="panel-title-row"><div><h2>Members</h2><p class="panel-lede">Promote, demote, or remove members.</p></div></div>
+    <div class="panel-title-row"><div><h2>Members</h2><p class="panel-lede">View community members. Role changes require secret-code access.</p></div></div>
     <div id="usersList"></div>
   </section>
 </main><dialog id="previewDialog" class="preview-dialog"><div id="previewContent"></div><button class="btn btn-ghost" id="closePreview" type="button" style="margin-top:20px">Close preview</button></dialog>
@@ -250,24 +250,7 @@ async function loadUsers() {
   if (!ok) { box.innerHTML = `<div class="card">${escapeHtml(error)}</div>`; return; }
   const users = Array.isArray(data) ? data : [];
   document.getElementById('memberCount').textContent = users.length;
-  box.innerHTML = users.map((u) => `<article class="card user-row"><div><strong>${escapeHtml(u.full_name)}</strong><p class="meta">@${escapeHtml(u.username)} · ${u.role === 'admin' ? 'Coordinator' : 'Member'}</p></div><div class="btn-row">${u.role === 'admin' ? `<button class="btn btn-ghost" data-role="user" data-id="${escapeHtml(u.id)}">Demote</button>` : `<button class="btn btn-success" data-role="admin" data-id="${escapeHtml(u.id)}">Promote</button>`}<button class="btn btn-danger" data-del-user="${escapeHtml(u.id)}">Delete</button></div></article>`).join('');
-  box.querySelectorAll('[data-role]').forEach((b) => b.onclick = async () => {
-    const next = b.dataset.role;
-    if (!confirm(next === 'admin' ? 'Promote to coordinator?' : 'Demote to member? Coordinator access ends immediately.')) return;
-    b.disabled = true;
-    const { ok, error } = await apiJson('/users/promote', { method: 'POST', body: JSON.stringify({ userId: b.dataset.id, role: next }) });
-    if (!ok) { b.disabled = false; return showToast(error, 'error'); }
-    showToast('Role updated. Permissions take effect immediately.', 'success');
-    loadUsers();
-  });
-  box.querySelectorAll('[data-del-user]').forEach((b) => b.onclick = async () => {
-    if (!confirm('Delete this member permanently?')) return;
-    b.disabled = true;
-    const { ok, error } = await apiJson('/users/promote', { method: 'POST', body: JSON.stringify({ userId: b.dataset.delUser, remove: true }) });
-    if (!ok) { b.disabled = false; return showToast(error, 'error'); }
-    showToast('Member deleted.', 'success');
-    loadUsers();
-  });
+  box.innerHTML = '<div class="notice">User management is available through <a href="/access.html">Secret code access →</a></div>' + users.map((u) => `<article class="card user-row"><div><strong>${escapeHtml(u.full_name)}</strong><p class="meta">@${escapeHtml(u.username)}</p></div><span class="badge">${u.role === 'admin' ? 'Admin · can post' : 'Member'}</span></article>`).join('');
 }
 loadUsers();
 (async () => {

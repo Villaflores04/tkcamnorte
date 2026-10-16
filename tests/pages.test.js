@@ -11,10 +11,16 @@ async function setup(page,options={}) {
  const dom=new JSDOM(html,{url:'https://example.test/'+page+(options.query||''),runScripts:'outside-only'});
  const w=dom.window; w.matchMedia=()=>({matches:false}); w.CSS={escape:v=>v}; w.confirm=()=>true;
  w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};w.HTMLDialogElement.prototype.close=function(){this.open=false;};
- w.localStorage.setItem('token','test');const calls=[];const receipts=[];
+ if(!['login.html','register.html','access.html','user-management.html'].includes(page))w.localStorage.setItem('token','test');const calls=[];const receipts=[];
+ const managedUsers=[{id:'coordinator',full_name:'Coordinator',username:'coordinator',role:'admin'},{id:'member',full_name:'Member One',username:'member_one',role:'user'}];
  w.fetch=async(endpoint,request={})=>{
   calls.push({endpoint,request});const url=new URL(endpoint,'https://example.test');let data,status=200;
-  if(url.pathname==='/api/auth/me') {data=options.user || user;if(options.failAuth){data={error:'Unavailable'};status=503;}}
+  if(url.pathname==='/api/users/promote') {
+   if(url.searchParams.get('resource')==='access')data={unlocked:Boolean(options.ownerUnlocked),success:true};
+   else if(request.method && request.method!=='GET') {const body=JSON.parse(request.body);const target=managedUsers.find(user=>user.id===body.userId);if(target)Object.assign(target,body);data={success:true};}
+   else data=managedUsers;
+  }
+  else if(url.pathname==='/api/auth/me') {data=options.user || user;if(options.failAuth){data={error:'Unavailable'};status=503;}}
   else if(url.pathname==='/api/announcements' && url.searchParams.get('resource')==='hub') {if(options.failPosts){data={error:'Test unavailable'};status=503;}else data={announcements:posts,receipts,trackingAvailable:true};}
   else if(url.pathname==='/api/announcements' && !url.searchParams.has('resource')) {if(options.failPosts){data={error:'Test unavailable'};status=503;} else data=url.searchParams.has('id')?posts.find(p=>p.id===url.searchParams.get('id')):posts;}
   else if(url.pathname==='/api/users/all')data=[{id:user.id,full_name:user.fullName,role:'admin',username:'member'}];
@@ -100,4 +106,35 @@ test('temporary account lookup failure offers retry without deleting the token',
  assert.equal(await common.requireAuth(),null);
  assert.equal(w.localStorage.getItem('token'),'test');
  assert.ok(w.document.querySelector('#retrySession'));dom.window.close();
+});
+
+test('login has secret-code navigation, accessible password toggle and useful login errors',async()=>{
+ const {w,dom,flush}=await setup('login.html');
+ assert.equal(w.document.querySelector('.secret-code-link').getAttribute('href'),'/access.html');
+ w.document.querySelector('[data-password="loginPassword"]').click();assert.equal(w.document.querySelector('#loginPassword').type,'text');
+ w.fetch=async()=>({ok:false,status:401,json:async()=>({error:'Incorrect username or password.'})});
+ w.document.querySelector('#username').value='member';w.document.querySelector('#loginPassword').value='wrong-password';
+ w.document.querySelector('#authForm').dispatchEvent(new w.Event('submit',{cancelable:true}));await flush();
+ assert.equal(w.document.querySelector('#formError').textContent,'Incorrect username or password.');assert.equal(w.document.querySelector('#submitBtn').disabled,false);dom.window.close();
+});
+test('registration preserves invitation-code validation and catches password mismatch before sending',async()=>{
+ const {w,dom,calls,flush}=await setup('register.html');
+ assert.ok(w.document.querySelector('#inviteCode').required);assert.equal(w.document.querySelector('.secret-code-link').getAttribute('href'),'/access.html');
+ w.document.querySelector('#username').value='member';w.document.querySelector('#password').value='test-password';w.document.querySelector('#confirmPassword').value='different-password';
+ w.document.querySelector('#authForm').dispatchEvent(new w.Event('submit',{cancelable:true}));await flush();
+ assert.match(w.document.querySelector('#formError').textContent,/do not match/);assert.equal(calls.length,0);dom.window.close();
+});
+test('secret code is submitted only to the server and is not stored in browser storage',async()=>{
+ const {w,dom,flush}=await setup('access.html');
+ w.fetch=async(endpoint,request)=>{assert.equal(endpoint,'/api/users/promote?resource=access');assert.equal(JSON.parse(request.body).code,'private-test-code');return {ok:false,status:403,json:async()=>({error:'Incorrect secret code.'})};};
+ w.document.querySelector('#secretCode').value='private-test-code';w.document.querySelector('#accessForm').dispatchEvent(new w.Event('submit',{cancelable:true}));await flush();
+ assert.equal(w.localStorage.length,1);assert.equal(w.localStorage.getItem('tk-theme'),'light');assert.equal(w.document.querySelector('#accessError').textContent,'Incorrect secret code.');dom.window.close();
+});
+test('owner console filters members and confirms role changes before sending them',async()=>{
+ const {w,dom,calls,flush}=await setup('user-management.html',{ownerUnlocked:true});
+ assert.equal(w.document.querySelectorAll('.owner-user-row').length,2);
+ w.document.querySelector('#roleFilter').value='user';w.document.querySelector('#roleFilter').dispatchEvent(new w.Event('change'));assert.equal(w.document.querySelectorAll('.owner-user-row').length,1);
+ w.document.querySelector('[data-role-user="member"]').click();assert.equal(w.document.querySelector('#ownerConfirmDialog').open,true);assert.equal(calls.some(call=>call.request.method==='PATCH'),false);
+ w.document.querySelector('#confirmAction').click();await flush();
+ const write=calls.find(call=>call.request.method==='PATCH');assert.equal(JSON.parse(write.request.body).role,'admin');assert.equal(w.document.querySelector('#totalAdmins').textContent,'2');dom.window.close();
 });
