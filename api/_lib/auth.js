@@ -1,12 +1,11 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { createHmac } from 'node:crypto';
+import { supabase } from './supabase.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-export const DEFAULT_ADMIN = {
-  username: 'admin',
-  password: '#admin321'
-};
+
 
 export function verifyToken(req) {
   const authHeader = req.headers.authorization || req.headers.Authorization;
@@ -20,20 +19,33 @@ export function verifyToken(req) {
   }
 }
 
-export function requireUser(req, res) {
-  const user = verifyToken(req);
-  if (!user) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return null;
-  }
-  return user;
+// The password fingerprint revokes every session when the password changes.
+export function sessionVersion(hash) {
+  return createHmac('sha256', JWT_SECRET).update(hash).digest('hex');
 }
 
-export function requireAdmin(req, res) {
-  const user = requireUser(req, res);
+export async function requireUser(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  const token = verifyToken(req);
+  if (!token || token.version !== 2) {
+    res.status(401).json({ error: 'Please sign in again.' });
+    return null;
+  }
+  const { data, error } = await supabase.from('users')
+    .select('id, role, password_hash').eq('id', token.userId).maybeSingle();
+  if (error) { res.status(503).json({ error: 'Unable to verify your account. Please try again.' }); return null; }
+  if (!data || token.sessionVersion !== sessionVersion(data.password_hash)) {
+    res.status(401).json({ error: 'Your session has ended. Please sign in again.' });
+    return null;
+  }
+  return { userId: data.id, role: data.role };
+}
+
+export async function requireAdmin(req, res) {
+  const user = await requireUser(req, res);
   if (!user) return null;
   if (user.role !== 'admin') {
-    res.status(403).json({ error: 'Forbidden. Coordinators only.' });
+    res.status(403).json({ error: 'Coordinators only.' });
     return null;
   }
   return user;
@@ -47,9 +59,9 @@ export function comparePassword(password, hash) {
   return bcrypt.compareSync(password, hash);
 }
 
-export function generateToken(userId, role) {
+export function generateToken(userId, role, passwordHash) {
   if (!JWT_SECRET) throw new Error('JWT_SECRET is not configured');
-  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ userId, role, version: 2, sessionVersion: sessionVersion(passwordHash) }, JWT_SECRET, { expiresIn: '7d' });
 }
 
 export const USERNAME_RE = /^[a-zA-Z0-9._]{3,24}$/;

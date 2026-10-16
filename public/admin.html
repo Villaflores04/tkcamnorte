@@ -4,13 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Coordinator · TK Cam Norte</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/premium.css">
-  <link rel="stylesheet" href="/css/fixes.css">
-  <link rel="stylesheet" href="/css/next.css">
   <meta name="theme-color" content="#0A2048">
   <script>(function(){try{var t=localStorage.getItem('tk-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();</script>
-</head>
+<link rel="stylesheet" href="/css/hub.css"></head>
 <body>
 <header class="topbar">
   <a class="brand" href="/"><div class="mark">TK</div><div class="brand-name">Coordinator<small>Manage your community</small></div></a>
@@ -21,7 +17,7 @@
   <ul class="nav-links" id="navLinks"></ul>
 </header>
 <main class="container">
-  <section class="admin-hero"><div class="eyebrow">Good morning</div><h1>Coordinator</h1><p>Manage announcements and members from one place.</p><div class="hero-orbit" aria-hidden="true"></div><div class="script">Together<br>in His<br>Purpose</div></section>
+  <section class="admin-hero"><div class="eyebrow">COMMUNITY WORKSPACE</div><h1>Coordinator</h1><p>Manage announcements and members from one place.</p></section>
   <section class="stats-grid"><div class="stat-card"><span class="stat-icon icon" data-icon="megaphone" aria-hidden="true"></span><div><strong id="announcementCount">—</strong><span>Announcements</span></div></div><div class="stat-card"><span class="stat-icon icon" data-icon="users" aria-hidden="true"></span><div><strong id="memberCount">—</strong><span>Members</span></div></div></section>
   <div class="tabs" role="tablist" aria-label="Coordinator sections">
     <button type="button" class="active" data-tab="compose" role="tab" aria-selected="true">Compose</button>
@@ -33,8 +29,8 @@
     <p class="panel-lede">Create an update for TK Cam Norte members.</p>
     <form id="announcementForm">
       <input type="hidden" id="editId">
-      <div class="field"><label for="title">Title</label><input id="title" required placeholder="Announcement title"></div>
-      <div class="field"><label for="content">Content</label><textarea id="content" rows="6" required placeholder="Write your announcement..."></textarea></div>
+      <div class="field"><label for="template">Start with a template</label><select id="template"><option value="">Blank announcement</option><option value="rehearsal">Rehearsal instructions</option><option value="lineup">Song line-up</option><option value="costume">Costume preparation</option><option value="deadline">Deadline reminder</option></select></div><div class="field"><label for="title">Title</label><input id="title" maxlength="180" required placeholder="Announcement title"></div>
+      <div class="field"><label for="content">Content</label><textarea id="content" maxlength="20000" rows="6" required placeholder="Write your announcement..."></textarea></div>
       <div class="form-grid">
         <div class="field"><label for="category">Category</label>
           <select id="category">
@@ -51,6 +47,8 @@
         <div class="field"><label for="startsAt">Start date</label><input id="startsAt" type="date"></div>
         <div class="field"><label for="endsAt">End date</label><input id="endsAt" type="date"></div>
       </div>
+      <div class="form-grid"><div class="field"><label for="venue">Venue</label><input id="venue" maxlength="250" placeholder="Meeting point or venue"></div><div class="field"><label for="callTime">Call time · Philippine time</label><input id="callTime" type="time"></div></div>
+      <label class="check-row"><input type="checkbox" id="requiresAck"> Ask members to acknowledge these instructions</label>
       <label class="check-row"><input type="checkbox" id="isPinned"> I-pin sa taas</label>
       <div class="field upload-field">
         <label for="coverImage">Reference / cover image</label>
@@ -66,9 +64,9 @@
       <p class="form-error" id="formError" hidden aria-live="polite"></p>
       <div class="btn-row admin-actions">
         <button class="btn" type="submit" id="saveBtn">Publish Announcement</button>
-        <button class="btn btn-ghost" type="button" id="resetBtn">Clear</button>
+        <button class="btn btn-ghost" type="button" id="previewBtn">Preview</button><button class="btn btn-ghost" type="button" id="saveDraftBtn">Save draft</button><button class="btn btn-ghost" type="button" id="resetBtn">Clear</button>
       </div>
-    </form>
+      <p id="draftStatus" class="draft-status" aria-live="polite">Drafts stay on this device. Files must be selected again after reloading.</p></form>
   </section>
   <section class="panel" id="panel-posts" hidden>
     <div class="panel-title-row"><div><h2>Recent Announcements</h2><p class="panel-lede">Edit or remove published updates.</p></div></div>
@@ -78,7 +76,7 @@
     <div class="panel-title-row"><div><h2>Members</h2><p class="panel-lede">Promote, demote, or remove members.</p></div></div>
     <div id="usersList"></div>
   </section>
-</main>
+</main><dialog id="previewDialog" class="preview-dialog"><div id="previewContent"></div><button class="btn btn-ghost" id="closePreview" type="button" style="margin-top:20px">Close preview</button></dialog>
 <nav class="mobile-bottom-nav" aria-label="Admin navigation">
   <a href="/"><span class="nav-icon icon" data-icon="home" aria-hidden="true"></span><span>Home</span></a>
   <a class="active" href="#panel-compose"><span class="nav-icon icon" data-icon="edit" aria-hidden="true"></span><span>Compose</span></a>
@@ -86,22 +84,46 @@
   <a href="#panel-members"><span class="nav-icon icon" data-icon="users" aria-hidden="true"></span><span>Members</span></a>
   <a href="/profile.html"><span class="nav-icon icon" data-icon="user" aria-hidden="true"></span><span>Profile</span></a>
 </nav>
-<style>
-.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
-.stat-card{display:flex;align-items:center;gap:12px;padding:15px;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:var(--shadow-sm)}
-.stat-icon{flex:0 0 40px;width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--blue-50);color:var(--blue-700)}
-.stat-icon .icon,.stat-icon svg{width:19px;height:19px}
-.stat-card strong{display:block;font:800 28px/1 Outfit,sans-serif;color:var(--blue-900)}
-.stat-card span{font-size:12px;color:var(--muted);font-weight:700}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.upload-zone{min-height:105px!important;display:flex!important;flex-direction:column!important;align-items:center;justify-content:center;gap:6px;padding:15px;border:1.5px dashed #9fc1f4;border-radius:18px;background:var(--blue-50);color:var(--blue-700);cursor:pointer;text-align:center}
-.upload-zone .icon{width:22px;height:22px}
-@media(max-width:380px){.form-grid{grid-template-columns:1fr}}
-</style>
+
 <script type="module">
 import {requireAuth,initShell,apiJson,uploadFiles,escapeHtml,formatDate,categoryLabel,showToast,setFormError,deadlineMeta} from '/js/common.js';
 const user = await requireAuth('admin'); if (!user) throw new Error('auth'); initShell(user);
 const params = new URLSearchParams(location.search);
+let publishing = false;
+const draftKey = 'tk-draft-' + user.id;
+const draftFields = ['editId','title','content','category','deadlineDate','startsAt','endsAt','venue','callTime'];
+const form = document.getElementById('announcementForm');
+document.getElementById('saveDraftBtn').onclick = () => {
+  const draft = Object.fromEntries(draftFields.map(id => [id,document.getElementById(id).value]));
+  draft.isPinned = document.getElementById('isPinned').checked; draft.requiresAck = document.getElementById('requiresAck').checked;
+  try { localStorage.setItem(draftKey,JSON.stringify(draft)); document.getElementById('draftStatus').textContent = 'Draft saved on this device. Files are not saved in drafts.'; } catch { showToast('Unable to save this draft on this device.','error'); }
+};
+if (!params.get('edit')) {
+  try { const draft = JSON.parse(localStorage.getItem(draftKey)); if (draft) {
+    draftFields.forEach(id => document.getElementById(id).value = draft[id] || '');
+    document.getElementById('isPinned').checked = !!draft.isPinned; document.getElementById('requiresAck').checked = !!draft.requiresAck;
+    if (draft.editId) { document.getElementById('composeTitle').textContent = 'Edit announcement'; document.getElementById('saveBtn').textContent = 'Save changes'; }
+    document.getElementById('draftStatus').textContent = 'Saved draft restored. Select attachments again before publishing.';
+  } } catch {}
+}
+document.getElementById('template').onchange = e => {
+  const templates = {
+    rehearsal: ['Rehearsal instructions','general','Preparation checklist:\n• Review the assigned choreography.\n• Bring the required materials.\n\nAdditional instructions:\n'],
+    lineup: ['Song line-up','song_lineup','Song line-up:\n1. \n2. \n3. \n\nRehearsal notes:\n'],
+    costume: ['Costume preparation','general','Required attire:\n• \n\nItems to bring:\n• \n\nCoordinator notes:\n'],
+    deadline: ['Deadline reminder','deadline','Action required:\n\nHow to submit:\n\nContact your coordinator if you need assistance.']
+  };
+  const t = templates[e.target.value]; if (!t) return;
+  if (document.getElementById('content').value.trim() && !confirm('Replace the current title and content with this template?')) return;
+  document.getElementById('title').value=t[0]; document.getElementById('category').value=t[1]; document.getElementById('content').value=t[2];
+};
+document.getElementById('previewBtn').onclick = () => {
+  const value = id => escapeHtml(document.getElementById(id).value);
+  document.getElementById('previewContent').innerHTML = `<div class="eyebrow">MEMBER PREVIEW</div><span class="badge">${escapeHtml(categoryLabel(document.getElementById('category').value))}</span><h2 style="margin-top:16px">${value('title') || 'Untitled announcement'}</h2><p class="body-text">${value('content')}</p><div class="notice">${value('startsAt')}${value('endsAt') ? ' → '+value('endsAt') : ''}${value('callTime') ? ' · '+value('callTime')+' PHT' : ''}<br>${value('venue')}${value('deadlineDate') ? '<br>Deadline: '+value('deadlineDate') : ''}</div>${document.getElementById('requiresAck').checked ? '<p class="meta">Members will be asked to acknowledge this announcement.</p>' : ''}`;
+  document.getElementById('previewDialog').showModal();
+};
+document.getElementById('closePreview').onclick = () => document.getElementById('previewDialog').close();
+
 const tabs = document.querySelectorAll('.tabs button');
 const bottomTabLinks = document.querySelectorAll('.mobile-bottom-nav a[href^="#panel-"]');
 tabs.forEach((btn) => btn.onclick = () => {
@@ -127,7 +149,7 @@ function resetForm() {
   document.getElementById('existingCover').textContent = '';
   setFormError('formError', '');
 }
-document.getElementById('resetBtn').onclick = resetForm;
+document.getElementById('resetBtn').onclick = () => { if (confirm('Clear the form and its saved draft?')) { localStorage.removeItem(draftKey); resetForm(); history.replaceState({}, '', '/admin.html'); document.getElementById('draftStatus').textContent = 'Draft cleared.'; } };
 async function loadOne(id) {
   const { ok, data, error } = await apiJson(`/announcements?id=${encodeURIComponent(id)}`);
   if (!ok) return showToast(error, 'error');
@@ -139,6 +161,9 @@ async function loadOne(id) {
   document.getElementById('startsAt').value = data.starts_at || '';
   document.getElementById('endsAt').value = data.ends_at || '';
   document.getElementById('isPinned').checked = Boolean(data.is_pinned);
+  document.getElementById('venue').value = data.venue || '';
+  document.getElementById('callTime').value = data.call_time || '';
+  document.getElementById('requiresAck').checked = Boolean(data.requires_ack);
   document.getElementById('composeTitle').textContent = 'Edit announcement';
   document.getElementById('saveBtn').textContent = 'Save changes';
   document.getElementById('existingCover').textContent = data.cover_image_url ? 'May existing cover image. New upload replaces it.' : '';
@@ -149,6 +174,14 @@ async function loadOne(id) {
 if (params.get('edit')) loadOne(params.get('edit'));
 document.getElementById('announcementForm').addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (publishing) return;
+  const start = document.getElementById('startsAt').value, end = document.getElementById('endsAt').value;
+  if (end && (!start || end < start)) return setFormError('formError','Choose an end date on or after the start date.');
+  if (document.getElementById('callTime').value && !start) return setFormError('formError','Choose an activity date for the call time.');
+  publishing = true;
+  const save = document.getElementById('saveBtn'); save.disabled = true; save.textContent = 'Publishing…';
+  document.getElementById('resetBtn').disabled = true;
+  try {
   const editId = document.getElementById('editId').value;
   const files = document.getElementById('attachments').files;
   const cover = document.getElementById('coverImage').files[0];
@@ -170,7 +203,10 @@ document.getElementById('announcementForm').addEventListener('submit', async (e)
     deadlineDate: document.getElementById('deadlineDate').value || null,
     startsAt: document.getElementById('startsAt').value || null,
     endsAt: document.getElementById('endsAt').value || null,
-    isPinned: document.getElementById('isPinned').checked
+    isPinned: document.getElementById('isPinned').checked,
+    venue: document.getElementById('venue').value.trim(),
+    callTime: document.getElementById('callTime').value || null,
+    requiresAck: document.getElementById('requiresAck').checked
   };
   if (attachments) payload.attachments = attachments;
   if (coverImageUrl) payload.coverImageUrl = coverImageUrl;
@@ -181,6 +217,9 @@ document.getElementById('announcementForm').addEventListener('submit', async (e)
   showToast(editId ? 'Na-update ang anunsyo.' : 'Published.', 'success');
   resetForm();
   history.replaceState({}, '', '/admin.html');
+  localStorage.removeItem(draftKey);
+  loadPosts();
+  } finally { publishing = false; save.disabled = false; save.textContent = document.getElementById('editId').value ? 'Save changes' : 'Publish Announcement'; document.getElementById('resetBtn').disabled = false; }
 });
 async function loadPosts() {
   const box = document.getElementById('adminAnnouncementsList');
@@ -212,11 +251,11 @@ async function loadUsers() {
   box.innerHTML = users.map((u) => `<article class="card user-row"><div><strong>${escapeHtml(u.full_name)}</strong><p class="meta">@${escapeHtml(u.username)} · ${u.role === 'admin' ? 'Coordinator' : 'Member'}</p></div><div class="btn-row">${u.role === 'admin' ? `<button class="btn btn-ghost" data-role="user" data-id="${escapeHtml(u.id)}">Demote</button>` : `<button class="btn btn-success" data-role="admin" data-id="${escapeHtml(u.id)}">Promote</button>`}<button class="btn btn-danger" data-del-user="${escapeHtml(u.id)}">Delete</button></div></article>`).join('');
   box.querySelectorAll('[data-role]').forEach((b) => b.onclick = async () => {
     const next = b.dataset.role;
-    if (!confirm(next === 'admin' ? 'Promote to coordinator?' : 'Demote to member? They must login again.')) return;
+    if (!confirm(next === 'admin' ? 'Promote to coordinator?' : 'Demote to member? Coordinator access ends immediately.')) return;
     b.disabled = true;
     const { ok, error } = await apiJson('/users/promote', { method: 'POST', body: JSON.stringify({ userId: b.dataset.id, role: next }) });
     if (!ok) { b.disabled = false; return showToast(error, 'error'); }
-    showToast('Role updated. Mag-login ulit ang member.', 'success');
+    showToast('Role updated. Permissions take effect immediately.', 'success');
     loadUsers();
   });
   box.querySelectorAll('[data-del-user]').forEach((b) => b.onclick = async () => {
@@ -228,6 +267,7 @@ async function loadUsers() {
     loadUsers();
   });
 }
+loadUsers();
 (async () => {
   const { ok, data } = await apiJson('/announcements');
   if (ok && Array.isArray(data)) document.getElementById('announcementCount').textContent = data.length;

@@ -1,3 +1,4 @@
+import { validateAnnouncement } from '../_lib/announcement-validation.js';
 import { requireUser, requireAdmin, CATEGORIES } from '../_lib/auth.js';
 import { supabase, ANNOUNCEMENT_SELECT } from '../_lib/supabase.js';
 import { attachReactions } from '../_lib/reactions.js';
@@ -24,7 +25,7 @@ async function removeStorageFiles(announcementId) {
 }
 
 export default async function handler(req, res) {
-  const session = requireUser(req, res);
+  const session = await requireUser(req, res);
   if (!session) return;
   const { id } = req.query || {};
   if (!id) return res.status(400).json({ error: 'Missing announcement id' });
@@ -41,7 +42,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'PUT') {
-    if (!requireAdmin(req, res)) return;
+    if (!await requireAdmin(req, res)) return;
+    const validationError = validateAnnouncement(req.body || {});
+    if (req.method !== 'DELETE' && validationError) return res.status(400).json({ error: validationError });
     const { title, content, category, deadlineDate, startsAt, endsAt, isPinned, attachments, coverImageUrl } = req.body || {};
     const updates = { updated_by: session.userId, updated_at: new Date().toISOString() };
     if (title) updates.title = String(title).trim();
@@ -55,6 +58,10 @@ export default async function handler(req, res) {
     if (endsAt !== undefined) updates.ends_at = endsAt || null;
     if (isPinned !== undefined) updates.is_pinned = Boolean(isPinned);
     if (coverImageUrl !== undefined) updates.cover_image_url = coverImageUrl || null;
+
+    if (req.body.venue !== undefined) updates.venue = String(req.body.venue || '').trim() || null;
+    if (req.body.callTime !== undefined) updates.call_time = req.body.callTime || null;
+    if (req.body.requiresAck !== undefined) updates.requires_ack = Boolean(req.body.requiresAck);
 
     const { error: updateError } = await supabase.from('announcements').update(updates).eq('id', id);
     if (updateError) return res.status(500).json({ error: updateError.message });
@@ -79,7 +86,7 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'DELETE') {
-    if (!requireAdmin(req, res)) return;
+    if (!await requireAdmin(req, res)) return;
     await supabase.from('comments').delete().eq('announcement_id', id);
     await supabase.from('announcement_reactions').delete().eq('announcement_id', id);
     await removeStorageFiles(id);

@@ -2,7 +2,7 @@ import { requireUser, hashPassword, comparePassword, publicUser } from '../_lib/
 import { supabase } from '../_lib/supabase.js';
 
 export default async function handler(req, res) {
-  const session = requireUser(req, res);
+  const session = await requireUser(req, res);
   if (!session) return;
 
   if (req.method === 'GET') {
@@ -40,7 +40,7 @@ export default async function handler(req, res) {
         .single();
       if (fetchError) return res.status(500).json({ error: fetchError.message });
       if (!comparePassword(oldPassword, current.password_hash)) {
-        return res.status(401).json({ error: 'Mali ang lumang password.' });
+        return res.status(400).json({ error: 'Mali ang lumang password.' });
       }
       updates.password_hash = hashPassword(newPassword);
     }

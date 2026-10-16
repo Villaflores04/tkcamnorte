@@ -1,58 +1,15 @@
+import { createHash } from 'node:crypto';
 import { supabase } from '../_lib/supabase.js';
-import { comparePassword, generateToken, publicUser, hashPassword, DEFAULT_ADMIN } from '../_lib/auth.js';
-
-async function ensureDefaultAdmin() {
-  const { data: existing } = await supabase
-    .from('users')
-    .select('id, username, role, password_hash, full_name, profile_image_url')
-    .ilike('username', DEFAULT_ADMIN.username)
-    .maybeSingle();
-
-  if (!existing) {
-    const { data: created, error } = await supabase
-      .from('users')
-      .insert([{
-        full_name: 'Coordinator',
-        username: DEFAULT_ADMIN.username,
-        password_hash: hashPassword(DEFAULT_ADMIN.password),
-        role: 'admin'
-      }])
-      .select('id, full_name, username, password_hash, role, profile_image_url')
-      .single();
-    if (error) return null;
-    return created;
-  }
-
-  if (existing.role !== 'admin') {
-    await supabase.from('users').update({ role: 'admin' }).eq('id', existing.id);
-    existing.role = 'admin';
-  }
-  return existing;
-}
+import { comparePassword, generateToken, publicUser, USERNAME_RE } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  res.setHeader('Cache-Control', 'no-store');
   const username = String(req.body?.username || '').trim();
   const password = String(req.body?.password || '');
-  if (!username || !password) {
+  if (!USERNAME_RE.test(username) || !password || password.length > 72) {
     return res.status(400).json({ error: 'Ilagay ang username at password.' });
-  }
-
-  if (username.toLowerCase() === DEFAULT_ADMIN.username && password === DEFAULT_ADMIN.password) {
-    const admin = await ensureDefaultAdmin();
-    if (admin && comparePassword(password, admin.password_hash)) {
-      const token = generateToken(admin.id, 'admin');
-      return res.status(200).json({ token, user: publicUser({ ...admin, role: 'admin' }) });
-    }
-    if (admin && !comparePassword(password, admin.password_hash)) {
-      await supabase.from('users').update({
-        password_hash: hashPassword(DEFAULT_ADMIN.password),
-        role: 'admin'
-      }).eq('id', admin.id);
-      const token = generateToken(admin.id, 'admin');
-      return res.status(200).json({ token, user: publicUser({ ...admin, role: 'admin' }) });
-    }
   }
 
   const { data: user } = await supabase
@@ -61,10 +18,14 @@ export default async function handler(req, res) {
     .ilike('username', username)
     .maybeSingle();
 
+  // Reject the previously published bootstrap password, even on an existing account.
+  if (createHash('sha256').update(password).digest('hex') === '9c4b95dbebcbfb09a528dbacbb17ea0aeb2a31b859f470747f3ca1dd63c02256') {
+    return res.status(403).json({ error: 'This password was retired. Ask the site owner to reset your account securely.' });
+  }
   if (!user || !comparePassword(password, user.password_hash)) {
     return res.status(401).json({ error: 'Mali ang username o password.' });
   }
 
-  const token = generateToken(user.id, user.role);
+  const token = generateToken(user.id, user.role, user.password_hash);
   res.status(200).json({ token, user: publicUser(user) });
 }

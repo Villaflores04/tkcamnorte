@@ -3,7 +3,7 @@ import { supabase } from '../_lib/supabase.js';
 import { attachReactions } from '../_lib/reactions.js';
 
 export default async function handler(req, res) {
-  const session = requireUser(req, res);
+  const session = await requireUser(req, res);
   if (!session) return;
 
   if (req.method === 'POST') {

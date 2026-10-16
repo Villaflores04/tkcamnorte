@@ -23,6 +23,7 @@ function readUpload(req) {
       jobs.push(done);
     });
 
+    bb.on('filesLimit', () => { truncated = true; });
     bb.on('error', reject);
     bb.on('finish', async () => {
       try {
@@ -39,7 +40,7 @@ function readUpload(req) {
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const session = requireUser(req, res);
+  const session = await requireUser(req, res);
   if (!session) return;
 
   const bucket = String(req.query?.bucket || 'announcement-attachments');
@@ -49,11 +50,11 @@ export default async function handler(req, res) {
 
   // Announcement files are coordinator-managed content. Do not rely on the UI
   // to enforce this because authenticated members can call the API directly.
-  if (bucket === 'announcement-attachments' && !requireAdmin(req, res)) return;
+  if (bucket === 'announcement-attachments' && !await requireAdmin(req, res)) return;
 
   try {
     const { files, truncated } = await readUpload(req);
-    if (truncated) return res.status(400).json({ error: 'File too large (max 8MB).' });
+    if (truncated) return res.status(400).json({ error: 'Use up to 8 files, each no larger than 8MB.' });
     if (!files.length) return res.status(400).json({ error: 'No file received.' });
 
     const uploaded = [];
