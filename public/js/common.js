@@ -1,3 +1,4 @@
+import { initParallax } from './motion.js';
 import { activityStatus, isCurrent, versionOf, todayKey } from './dates.js';
 const API_BASE = '/api';
 
@@ -15,6 +16,7 @@ export function categoryLabel(id) {
 }
 
 const ICONS = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"/><path d="m7 12 3 3 7-7"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>',
   user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 19c1.4-3.2 4-5 7-5s5.6 1.8 7 5"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 19c1.2-2.8 3.4-4.2 6-4.2"/><circle cx="16.5" cy="9" r="2.4"/><path d="M14 19c.6-2.3 2.2-3.6 4.5-3.6 1.3 0 2.4.4 3.5 1.2"/></svg>',
@@ -177,7 +179,7 @@ export function applyTheme(theme) {
   document.documentElement.style.colorScheme = dark ? 'dark' : 'light';
   try { localStorage.setItem('tk-theme', theme); } catch {}
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute('content', dark ? '#08101c' : '#0a2048');
+  if (meta) meta.setAttribute('content', dark ? '#08101c' : '#1971eb');
   const btn = document.getElementById('themeToggle');
   if (btn) {
     btn.innerHTML = dark ? icon('sun') : icon('moon');
@@ -494,6 +496,7 @@ export function initShell(user, options = {}) {
 }
 
 applyTheme(currentTheme());
+initParallax();
 
 export async function loadNotifications() {
   const list = document.getElementById('notifyList');

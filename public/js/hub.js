@@ -1,3 +1,4 @@
+import { initParallax, stageArtwork } from './motion.js';
 import { requireAuth, initShell, apiJson, escapeHtml as esc, formatDate, categoryLabel, CATEGORIES, bottomNav, firstName, coverOf, icon, renderReactions, bindReactions, avatarUrl, relativeTime } from './common.js';
 import { activityStatus, todayKey, isCurrent, scheduleEntries } from './dates.js';
 const user = await requireAuth();
@@ -46,7 +47,29 @@ function renderDashboard() {
   const featured = posts.find(p => p.is_pinned && activityStatus(p) !== 'Completed');
   const focus = next?.post || featured;
   const summary = document.getElementById('dashboardSummary');
-  summary.innerHTML = `${focus ? `<section class="feature"><div class="eyebrow">${next ? 'NEXT ACTIVITY' : 'PINNED ANNOUNCEMENT'}</div><h2>${esc(focus.title)}</h2>${eventMeta(focus)}<a class="btn btn-yellow" href="${postUrl(focus)}">View details ${icon('arrowRight')}</a></section>` : '<section class="feature"><div class="eyebrow">TEATRO KRISTIANO CAMARINES NORTE</div><h2>Ready for what’s ahead.</h2><p>Your next activity will appear here as soon as your coordinator shares the schedule.</p><a class="btn btn-yellow" href="/announcements.html">Browse announcements →</a></section>'}<div class="quick-stats"><a class="quick-stat" href="/announcements.html?view=unread"><strong>${tracking ? posts.filter(p => !hasRead(p)).length : '—'}</strong><span>Unread updates</span></a><a class="quick-stat" href="/announcements.html?view=action"><strong>${tracking ? posts.filter(needsAck).length : '—'}</strong><span>Need acknowledgment</span></a><a class="quick-stat" href="/calendar.html"><strong>${entries.length}</strong><span>Upcoming dates</span></a></div>${!tracking ? '<p class="notice">Read and acknowledgment tracking is temporarily unavailable. You can still read announcements.</p>' : ''}`;
+  const unread = posts.filter(p => !hasRead(p)).length;
+  const responses = posts.filter(needsAck).length;
+  const featureLabel = next ? 'Your next activity' : focus ? 'In the spotlight' : 'Your community space';
+  const featureTitle = focus ? focus.title : 'Connected in purpose. Ready to serve.';
+  const featureCopy = focus ? (focus.content || '').slice(0, 130) + ((focus.content || '').length > 130 ? '…' : '') : 'A shared place for the updates, preparations, and moments that bring us together.';
+  const featureLink = focus ? postUrl(focus) : '/announcements.html';
+  summary.innerHTML = `
+    <section class="feature feature-stage" data-parallax>
+      <div class="feature-copy">
+        <div class="eyebrow"><span class="live-dot"></span>${esc(featureLabel)}</div>
+        <h2>${esc(featureTitle)}</h2>
+        <p class="feature-description">${esc(featureCopy)}</p>
+        ${focus ? eventMeta(focus) : ''}
+        <div class="feature-actions"><a class="btn btn-yellow" href="${featureLink}">${next ? 'View activity details' : focus ? 'Read announcement' : 'Explore announcements'} ${icon('arrowRight')}</a><a class="feature-secondary" href="/calendar.html">Open schedule ${icon('clock')}</a></div>
+      </div>
+      ${stageArtwork()}
+    </section>
+    <div class="quick-stats">
+      <a class="quick-stat" href="/announcements.html?view=unread"><div class="stat-top"><span class="stat-glyph">${icon('megaphone')}</span><span class="stat-link-arrow">↗</span></div><strong>${tracking ? unread : '—'}</strong><span>Unread updates</span><small>${tracking && unread === 0 ? 'You’re all caught up' : 'Catch up on what’s new'}</small></a>
+      <a class="quick-stat stat-gold" href="/announcements.html?view=action"><div class="stat-top"><span class="stat-glyph">${icon('check')}</span><span class="stat-link-arrow">↗</span></div><strong>${tracking ? responses : '—'}</strong><span>Need acknowledgment</span><small>${tracking && responses === 0 ? 'No responses pending' : 'Review and acknowledge'}</small></a>
+      <a class="quick-stat" href="/calendar.html"><div class="stat-top"><span class="stat-glyph">${icon('clock')}</span><span class="stat-link-arrow">↗</span></div><strong>${entries.length}</strong><span>Upcoming dates</span><small>Make room for what’s next</small></a>
+    </div>${!tracking ? '<p class="notice">Read and acknowledgment tracking is temporarily unavailable. You can still read announcements.</p>' : ''}`;
+  initParallax(summary);
   document.getElementById('upcomingList').innerHTML = entries.slice(0,4).map(e => {
     const date = new Date(e.date+'T12:00:00+08:00');
     return `<a class="agenda-item" href="${postUrl(e.post)}"><div class="agenda-date">${date.toLocaleDateString('en-PH',{month:'short',timeZone:'Asia/Manila'})}<strong>${Number(e.date.slice(-2))}</strong></div><div><h4>${esc(e.post.title)}</h4><p>${e.kind}${e.kind === 'Activity' && e.post.call_time ? ' · ' + esc(e.post.call_time.slice(0,5)) + ' PHT' : ''}</p></div></a>`;
