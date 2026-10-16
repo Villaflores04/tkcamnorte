@@ -1,3 +1,4 @@
+import { activityStatus, isCurrent, versionOf, todayKey } from './dates.js';
 const API_BASE = '/api';
 
 export const CATEGORIES = [
@@ -14,6 +15,7 @@ export function categoryLabel(id) {
 }
 
 const ICONS = {
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>',
   user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5 19c1.4-3.2 4-5 7-5s5.6 1.8 7 5"/></svg>',
   users: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 19c1.2-2.8 3.4-4.2 6-4.2"/><circle cx="16.5" cy="9" r="2.4"/><path d="M14 19c.6-2.3 2.2-3.6 4.5-3.6 1.3 0 2.4.4 3.5 1.2"/></svg>',
   lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
@@ -89,7 +91,8 @@ export function avatarUrl(person, fallbackName) {
   const url = person?.profile_image_url || person?.profileImageUrl;
   if (url) return url;
   const name = fallbackName || person?.full_name || person?.fullName || person?.username || 'Member';
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0b4fbd&color=ffc629&bold=true`;
+  const initials = name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase();
+  return 'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="20" fill="#edf2fe"/><text x="40" y="48" text-anchor="middle" font-family="sans-serif" font-size="26" fill="#2457d6">${escapeHtml(initials)}</text></svg>`);
 }
 
 export function firstName(user) {
@@ -152,7 +155,7 @@ export async function requireAuth(role) {
     location.href = '/login.html';
     return null;
   }
-  const user = await refreshSession() || getUser();
+  const user = await refreshSession();
   if (!user) {
     location.href = '/login.html';
     return null;
@@ -165,7 +168,7 @@ export async function requireAuth(role) {
 }
 
 export function redirectBasedOnRole() {
-  playBumper(() => { location.href = '/'; });
+  location.href = '/';
 }
 
 export function applyTheme(theme) {
@@ -239,7 +242,7 @@ export function formatDate(value, withTime = false) {
   const d = parseDateValue(value);
   if (Number.isNaN(d.getTime())) return '';
   return withTime
-    ? d.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })
+    ? d.toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' })
     : d.toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
@@ -262,7 +265,7 @@ export function deadlineMeta(dateStr) {
   if (!dateStr) return null;
   const due = parseDateValue(dateStr);
   if (Number.isNaN(due.getTime())) return null;
-  const today = new Date();
+  const today = parseDateValue(todayKey());
   today.setHours(0, 0, 0, 0);
   due.setHours(0, 0, 0, 0);
   const days = Math.round((due - today) / 86400000);
@@ -273,18 +276,7 @@ export function deadlineMeta(dateStr) {
   return { label: formatDate(dateStr), tone: 'ok', days };
 }
 
-export function isOngoing(a) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const start = a.starts_at ? parseDateValue(a.starts_at) : null;
-  const end = a.ends_at ? parseDateValue(a.ends_at) : (a.deadline_date ? parseDateValue(a.deadline_date) : null);
-  if (start) start.setHours(0, 0, 0, 0);
-  if (end) end.setHours(0, 0, 0, 0);
-  if (start && end) return start <= today && end >= today;
-  if (end) return end >= today;
-  if (a.is_pinned) return true;
-  return false;
-}
+export function isOngoing(a) { return activityStatus(a) === 'Ongoing'; }
 
 export function coverOf(a) {
   if (a.cover_image_url) return a.cover_image_url;
@@ -411,6 +403,7 @@ export function initShell(user, options = {}) {
     hamburger.setAttribute('aria-expanded', 'true');
     hamburger.innerHTML = icon('x');
     lockBody(true);
+    navLinks.querySelector('a')?.focus();
   };
   const toggleNav = (e) => {
     e?.preventDefault();
@@ -427,11 +420,20 @@ export function initShell(user, options = {}) {
     notes.hidden = false;
     scrim.classList.add('show');
     lockBody(true);
+    document.getElementById('notifyClose').focus();
   };
   const onKeydown = (e) => {
+    const panel = !notes.hidden ? notes : navLinks.classList.contains('show') ? navLinks : null;
+    if (panel && e.key === 'Tab') {
+      const focusable = [...panel.querySelectorAll('a[href],button:not([disabled])')];
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last?.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+    }
     if (e.key === 'Escape') {
       closeNav();
       closeNotes();
+      document.getElementById('notifyBtn')?.focus();
     }
   };
   const onScrim = () => {
@@ -442,11 +444,12 @@ export function initShell(user, options = {}) {
   hamburger.addEventListener('click', toggleNav);
   scrim.addEventListener('click', onScrim);
   document.addEventListener('keydown', onKeydown);
-  document.getElementById('notifyBtn')?.addEventListener('click', (e) => {
+  const notifyButton = document.getElementById('notifyBtn');
+  if (notifyButton) notifyButton.onclick = (e) => {
     e.preventDefault();
     notes.hidden ? openNotes() : closeNotes();
-  });
-  document.getElementById('notifyClose')?.addEventListener('click', closeNotes);
+  };
+  document.getElementById('notifyClose').onclick = closeNotes;
 
   shellCleanup = () => {
     hamburger.removeEventListener('click', toggleNav);
@@ -463,10 +466,9 @@ export function initShell(user, options = {}) {
       <span>${user.role === 'admin' ? 'Coordinator' : 'Member'}</span>
     </li>
     <li><a href="/" class="${path === '/' || path.endsWith('/index.html') ? 'active' : ''}">Home</a></li>
-    <li><a href="/#announcementsList">Anunsyo</a></li>
-    <li><a href="/calendar.html" class="${path.endsWith('/calendar.html') ? 'active' : ''}">Kalendaryo</a></li>
-    <li><a href="/groups.html" class="${path.endsWith('/groups.html') ? 'active' : ''}">Mga Grupo</a></li>
-    <li><a href="/profile.html" class="${path.endsWith('/profile.html') ? 'active' : ''}">Profile</a></li>
+    <li><a href="/announcements.html" class="${path.endsWith('/announcements.html') || path.endsWith('/announcement.html') ? 'active' : ''}">Announcements</a></li>
+    <li><a href="/calendar.html" class="${path.endsWith('/calendar.html') ? 'active' : ''}">Schedule</a></li>
+    <li><a href="/profile.html" class="${path.endsWith('/profile.html') ? 'active' : ''}">Account</a></li>
     ${user.role === 'admin' ? `<li><a href="/admin.html" class="${path.endsWith('/admin.html') ? 'active' : ''}">Coordinator</a></li>` : ''}
     <li><a href="#" id="logoutBtn">Logout</a></li>
   ` : `
@@ -481,6 +483,12 @@ export function initShell(user, options = {}) {
     location.href = '/login.html';
   });
 
+  const labels = { Home: 'home', Announcements: 'megaphone', Schedule: 'clock', Account: 'user', Coordinator: 'edit', Logout: 'arrowRight' };
+  navLinks.querySelectorAll('a').forEach(a => { const name = a.textContent.trim(); if (labels[name]) a.innerHTML = icon(labels[name]) + '<span>' + escapeHtml(name) + '</span>'; });
+  if (!document.querySelector('.skip-link')) {
+    const skip = document.createElement('a'); skip.className = 'skip-link'; skip.href = '#main-content'; skip.textContent = 'Skip to content';
+    document.body.prepend(skip); const main = document.querySelector('main'); if (main) { main.id = 'main-content'; main.tabIndex = -1; }
+  }
   hydrateIcons(document);
   if (options.loadNotifications !== false) loadNotifications();
 }
@@ -491,24 +499,20 @@ export async function loadNotifications() {
   const list = document.getElementById('notifyList');
   const badge = document.getElementById('notifyBadge');
   if (!list) return;
-  const { ok, data } = await apiJson('/announcements');
-  if (!ok || !Array.isArray(data)) return;
-  const ongoing = data.filter((a) => isOngoing(a) || a.is_pinned);
-  if (badge) {
-    badge.textContent = String(ongoing.length);
-    badge.hidden = ongoing.length === 0;
-  }
-  if (!ongoing.length) {
-    list.innerHTML = '<p class="meta">Walang ongoing announcement ngayon.</p>';
+  const [posts, receipts] = await Promise.all([apiJson('/announcements'), apiJson('/announcements?resource=receipts')]);
+  if (!posts.ok || !receipts.ok) {
+    list.innerHTML = '<p class="meta">Updates could not be loaded. Open Announcements to try again.</p>';
+    if (badge) badge.hidden = true;
     return;
   }
-  list.innerHTML = ongoing.map((a) => `
+  const read = new Map(receipts.data.map(r => [r.announcement_id, r.read_version]));
+  const unread = posts.data.filter(p => !isCurrent(read.get(p.id), p));
+  if (badge) { badge.textContent = unread.length > 99 ? '99+' : String(unread.length); badge.hidden = unread.length === 0; }
+  list.innerHTML = unread.length ? unread.slice(0, 30).map(a => `
     <a class="notify-item" href="/announcement.html?id=${encodeURIComponent(a.id)}">
-      <span class="badge badge-soon">Ongoing</span>
-      <strong>${escapeHtml(a.title)}</strong>
-      <small>${escapeHtml(categoryLabel(a.category))}${a.deadline_date ? ' · ' + escapeHtml(formatDate(a.deadline_date)) : ''}</small>
-    </a>
-  `).join('');
+      <span class="badge">UNREAD UPDATE</span><strong>${escapeHtml(a.title)}</strong>
+      <small>${escapeHtml(categoryLabel(a.category))} · ${escapeHtml(formatDate(versionOf(a)))}</small>
+    </a>`).join('') : '<p class="meta">You’re all caught up. New and edited announcements will appear here.</p>';
 }
 
 export function renderReactions(announcement) {
@@ -519,7 +523,7 @@ export function renderReactions(announcement) {
     </button>`;
   return `
     <div class="rx-row" data-rx-row="${announcement.id}">
-      ${btn('amen', icon('heart'), 'Amen')}
+      ${btn('amen', 'Amen', 'Amen')}
       ${btn('heart', icon('heart'), 'Heart')}
       ${btn('clap', icon('hand'), 'Clap')}
     </div>`;
@@ -539,7 +543,7 @@ export async function toggleReaction(announcementId, type, rowEl) {
       body: JSON.stringify({ announcementId, type })
     });
     if (!ok) {
-      showToast(error || 'Hindi na-save ang reaction. Run schema.sql sa Supabase.', 'error');
+      showToast(error || 'Could not save your reaction. Please try again.', 'error');
       return;
     }
     if (rowEl) {
@@ -579,12 +583,6 @@ export function autoGrow(el, maxPx = 160) {
 }
 
 export function bottomNav(active) {
-  return `
-    <nav class="mobile-bottom-nav" aria-label="Main navigation">
-      <a class="${active === 'home' ? 'active' : ''}" href="/">${icon('home')}<span>Home</span></a>
-      <a class="${active === 'feed' ? 'active' : ''}" href="/#announcementsList">${icon('megaphone')}<span>Anunsyo</span></a>
-      <a class="${active === 'calendar' ? 'active' : ''}" href="/calendar.html">${icon('clock')}<span>Kalendaryo</span></a>
-      <a class="${active === 'groups' ? 'active' : ''}" href="/groups.html">${icon('users')}<span>Mga Grupo</span></a>
-      <a class="${active === 'profile' ? 'active' : ''}" href="/profile.html">${icon('user')}<span>Profile</span></a>
-    </nav>`;
+  const links = [['home','/','home','Home'],['feed','/announcements.html','megaphone','Announcements'],['calendar','/calendar.html','clock','Schedule'],['profile','/profile.html','user','Account']];
+  return `<nav class="mobile-bottom-nav" aria-label="Main navigation">${links.map(([key,url,glyph,label]) => `<a class="${active === key ? 'active' : ''}" ${active === key ? 'aria-current="page"' : ''} href="${url}">${icon(glyph)}<span>${label}</span></a>`).join('')}</nav>`;
 }

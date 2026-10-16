@@ -3,7 +3,7 @@ import { supabase } from '../_lib/supabase.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const adminUser = requireAdmin(req, res);
+  const adminUser = await requireAdmin(req, res);
   if (!adminUser) return;
 
   const { userId, role, remove } = req.body || {};
@@ -28,7 +28,8 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true, deleted: true });
   }
 
-  const nextRole = role === 'user' ? 'user' : 'admin';
+  if (!['user', 'admin'].includes(role)) return res.status(400).json({ error: 'Invalid role' });
+  const nextRole = role;
 
   if (nextRole === 'user' && String(userId) === String(adminUser.userId)) {
     const { data: admins } = await supabase.from('users').select('id').eq('role', 'admin');

@@ -4,7 +4,7 @@ import { supabase } from '../_lib/supabase.js';
 const COMMENT_SELECT = '*, user:users(full_name, username, profile_image_url)';
 
 export default async function handler(req, res) {
-  const session = requireUser(req, res);
+  const session = await requireUser(req, res);
   if (!session) return;
 
   if (req.method === 'GET') {

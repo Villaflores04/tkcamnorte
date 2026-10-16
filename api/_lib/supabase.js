@@ -9,6 +9,6 @@ export const supabase = createClient(supabaseUrl || '', supabaseKey || '', {
 
 export const ANNOUNCEMENT_SELECT = `
   *,
-  created_by_user:users(full_name, username, profile_image_url),
+  created_by_user:users!announcements_created_by_fkey(full_name, username, profile_image_url),
   attachments:announcement_attachments(id, file_url, file_name, file_size)
 `;

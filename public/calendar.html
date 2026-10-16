@@ -4,13 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Kalendaryo · TK Cam Norte</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/premium.css">
-  <link rel="stylesheet" href="/css/fixes.css">
-  <link rel="stylesheet" href="/css/next.css">
   <meta name="theme-color" content="#0A2048">
   <script>(function(){try{var t=localStorage.getItem('tk-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();</script>
-</head>
+<link rel="stylesheet" href="/css/hub.css"></head>
 <body>
   <header class="topbar">
     <a class="brand" href="/">
@@ -25,8 +21,8 @@
   </header>
   <main class="container">
     <section class="page-head">
-      <h1>Kalendaryo</h1>
-      <p>Mga anunsyo ayon sa start, end, at deadline dates.</p>
+      <div class="eyebrow">PLAN AHEAD</div><h1>Schedule</h1>
+      <p>Activity dates and deadlines, in Philippine time.</p>
     </section>
     <section class="card">
       <div class="cal-nav">
@@ -44,14 +40,15 @@
   <div id="bottomNavHost"></div>
   <script type="module">
     import { requireAuth, initShell, apiJson, escapeHtml, formatDate, categoryLabel, bottomNav, parseDateValue } from '/js/common.js';
+    import { todayKey } from '/js/dates.js';
     const user = await requireAuth();
     if (!user) throw new Error('auth');
     initShell(user);
     document.getElementById('bottomNavHost').innerHTML = bottomNav('calendar');
 
-    let cursor = new Date();
+    let cursor = parseDateValue(todayKey());
     cursor.setDate(1);
-    let selected = new Date();
+    let selected = parseDateValue(todayKey());
     let items = [];
 
     function ymd(d) {
@@ -59,15 +56,9 @@
       if (Number.isNaN(x.getTime())) return '';
       return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
     }
-    function datesOf(a) {
-      const out = new Set();
-      [a.starts_at, a.ends_at, a.deadline_date].forEach((v) => { if (v) out.add(ymd(v)); });
-      if (a.starts_at && (a.ends_at || a.deadline_date)) {
-        const start = parseDateValue(a.starts_at);
-        const end = parseDateValue(a.ends_at || a.deadline_date);
-        for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) out.add(ymd(d));
-      }
-      return [...out];
+    function onDay(a, day) {
+      const activity = a.starts_at && day >= a.starts_at && day <= (a.ends_at || a.starts_at);
+      return Boolean(activity || a.deadline_date === day);
     }
 
     function renderMonth() {
@@ -77,15 +68,15 @@
       const firstDow = new Date(year, month, 1).getDay();
       const days = new Date(year, month + 1, 0).getDate();
       const marked = new Set();
-      items.forEach((a) => datesOf(a).forEach((d) => marked.add(d)));
+      for (let day=1;day<=days;day++) { const key = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`; if (items.some(a => onDay(a,key))) marked.add(key); }
       const cells = ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d) => `<div class="cal-dow">${d}</div>`);
       for (let i = 0; i < firstDow; i++) cells.push('<div></div>');
-      const today = ymd(new Date());
+      const today = todayKey();
       const sel = ymd(selected);
       for (let day = 1; day <= days; day++) {
         const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const cls = ['cal-day', marked.has(date) ? 'has' : '', date === sel ? 'selected' : '', date === today ? 'today' : ''].filter(Boolean).join(' ');
-        cells.push(`<button type="button" class="${cls}" data-day="${date}">${day}</button>`);
+        cells.push(`<button type="button" class="${cls}" aria-label="${formatDate(date)}${marked.has(date) ? ', has scheduled updates' : ''}" aria-pressed="${date === sel}" data-day="${date}">${day}</button>`);
       }
       const grid = document.getElementById('calGrid');
       grid.innerHTML = cells.join('');
@@ -101,7 +92,7 @@
     function renderDay() {
       const key = ymd(selected);
       document.getElementById('dayTitle').textContent = formatDate(selected) || 'Mga event';
-      const hits = items.filter((a) => datesOf(a).includes(key));
+      const hits = items.filter((a) => onDay(a,key));
       const box = document.getElementById('dayList');
       if (!hits.length) {
         box.innerHTML = '<div class="card empty">Walang anunsyo sa araw na ito.</div>';
@@ -109,21 +100,21 @@
       }
       box.innerHTML = hits.map((a) => `
         <a class="card" href="/announcement.html?id=${encodeURIComponent(a.id)}" style="display:block">
-          <span class="badge badge-cat">${escapeHtml(categoryLabel(a.category))}</span>
-          <h3 style="margin-top:8px">${escapeHtml(a.title)}</h3>
+          <span class="badge badge-cat">${a.deadline_date === key ? 'Deadline' : 'Activity'}</span>
+          <p class="meta">${escapeHtml(a.venue || '')}${a.call_time ? ' · Call time '+escapeHtml(a.call_time.slice(0,5))+' PHT' : ''}</p><h3 style="margin-top:8px">${escapeHtml(a.title)}</h3>
           <p class="meta">${a.starts_at || a.ends_at ? `${escapeHtml(formatDate(a.starts_at) || '—')} → ${escapeHtml(formatDate(a.ends_at || a.deadline_date) || '—')}` : escapeHtml(formatDate(a.deadline_date))}</p>
         </a>
       `).join('');
     }
 
-    document.getElementById('prevMonth').onclick = () => { cursor.setMonth(cursor.getMonth() - 1); renderMonth(); };
-    document.getElementById('nextMonth').onclick = () => { cursor.setMonth(cursor.getMonth() + 1); renderMonth(); };
+    document.getElementById('prevMonth').onclick = () => { cursor.setMonth(cursor.getMonth() - 1); selected = new Date(cursor); renderMonth(); renderDay(); };
+    document.getElementById('nextMonth').onclick = () => { cursor.setMonth(cursor.getMonth() + 1); selected = new Date(cursor); renderMonth(); renderDay(); };
 
     const { ok, data, error } = await apiJson('/announcements');
     items = ok && Array.isArray(data) ? data : [];
-    if (!ok) document.getElementById('dayList').innerHTML = `<div class="card empty">${escapeHtml(error)}</div>`;
     renderMonth();
-    renderDay();
+    if (!ok) { document.getElementById('dayList').innerHTML = `<div class="card empty"><h3>Unable to load schedule</h3><p>${escapeHtml(error)}</p><button class="btn" id="retrySchedule">Try again</button></div>`; document.getElementById('retrySchedule').onclick = () => location.reload(); }
+    else renderDay();
   </script>
 </body>
 </html>

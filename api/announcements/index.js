@@ -1,3 +1,5 @@
+import receiptsHandler from '../_lib/receipts.js';
+import { validateAnnouncement } from '../_lib/announcement-validation.js';
 import { requireUser, requireAdmin, CATEGORIES } from '../_lib/auth.js';
 import { supabase, ANNOUNCEMENT_SELECT } from '../_lib/supabase.js';
 import { attachReactions } from '../_lib/reactions.js';
@@ -27,6 +29,9 @@ function announcementPayload(body, userId, isCreate = false) {
   if (endsAt !== undefined) row.ends_at = endsAt || null;
   if (isPinned !== undefined) row.is_pinned = Boolean(isPinned);
   if (coverImageUrl !== undefined) row.cover_image_url = coverImageUrl || null;
+  if (body.venue !== undefined) row.venue = String(body.venue || '').trim() || null;
+  if (body.callTime !== undefined) row.call_time = body.callTime || null;
+  if (body.requiresAck !== undefined) row.requires_ack = Boolean(body.requiresAck);
   if (isCreate) row.created_by = userId;
   row.updated_by = userId;
   row.updated_at = new Date().toISOString();
@@ -34,7 +39,8 @@ function announcementPayload(body, userId, isCreate = false) {
 }
 
 export default async function handler(req, res) {
-  const session = requireUser(req, res);
+  if (req.query?.resource === 'receipts') return receiptsHandler(req, res);
+  const session = await requireUser(req, res);
   if (!session) return;
 
   if (req.method === 'GET') {
@@ -72,7 +78,9 @@ export default async function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    if (!requireAdmin(req, res)) return;
+    if (!await requireAdmin(req, res)) return;
+    const validationError = validateAnnouncement(req.body || {});
+    if (req.method !== 'DELETE' && validationError) return res.status(400).json({ error: validationError });
     const { title, content, category, attachments } = req.body || {};
     if (!title || !content || !category) {
       return res.status(400).json({ error: 'Kailangan ang title, content, at category.' });

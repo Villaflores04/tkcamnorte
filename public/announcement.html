@@ -4,16 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Anunsyo · TK Cam Norte</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <link rel="stylesheet" href="/css/premium.css">
-  <link rel="stylesheet" href="/css/fixes.css">
-  <link rel="stylesheet" href="/css/next.css">
   <meta name="theme-color" content="#0A2048">
   <script>(function(){try{var t=localStorage.getItem('tk-theme');var d=t==='dark'||(t!=='light'&&matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();</script>
-</head>
+<link rel="stylesheet" href="/css/hub.css"></head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/">
+    <a class="brand" href="/announcements.html">
       <div class="mark">TK</div>
       <div class="brand-name">TK Cam Norte<small>Comment thread</small></div>
     </a>
@@ -25,7 +21,7 @@
   </header>
   <main class="container">
     <p class="meta" style="margin-bottom:12px"><a href="/" style="display:inline-flex;align-items:center;gap:4px"><span class="icon" data-icon="chevronLeft" aria-hidden="true" style="width:14px;height:14px"></span> Balik sa anunsyo</a></p>
-    <div id="post"></div>
+    <div id="post"></div><section id="responseCard" class="card" hidden></section>
     <section class="card">
       <h2>Mga komento</h2>
       <div id="comments" class="comments-list" style="margin:12px 0"></div>
@@ -40,9 +36,11 @@
     import {
       requireAuth, initShell, apiJson, escapeHtml, formatDate, relativeTime,
       deadlineMeta, categoryLabel, renderReactions, bindReactions, getUser,
-      avatarUrl, showToast, bottomNav, coverOf, isOngoing, autoGrow, icon
+      avatarUrl, showToast, bottomNav, coverOf, isOngoing, autoGrow, icon, loadNotifications
     } from '/js/common.js';
 
+    import { versionOf, isCurrent } from '/js/dates.js';
+    let currentPost;
     const user = await requireAuth();
     if (!user) throw new Error('auth');
     initShell(user);
@@ -78,6 +76,7 @@
       const box = document.getElementById('post');
       const { ok, data, error } = await apiJson(`/announcements?id=${encodeURIComponent(id)}`);
       if (!ok) { box.innerHTML = `<div class="card empty">${escapeHtml(error)}</div>`; return; }
+      currentPost = data;
       const due = deadlineMeta(data.deadline_date || data.ends_at);
       const author = data.created_by_user || {};
       const cover = coverOf(data);
@@ -88,20 +87,49 @@
           <span class="badge badge-cat">${escapeHtml(categoryLabel(data.category))}</span>
           ${data.is_pinned ? `<span class="badge badge-pin">${icon('pin')}PINNED</span>` : ''}
         </div>
-        <h3>${escapeHtml(data.title)}</h3>
+        <h1>${escapeHtml(data.title)}</h1>
         <p class="body-text">${escapeHtml(data.content)}</p>
         ${due ? `<div class="deadline-box"><strong>${icon('clock')}${escapeHtml(due.label.toUpperCase())}</strong><span class="meta">${escapeHtml(formatDate(data.deadline_date || data.ends_at))}</span></div>` : ''}
         ${data.starts_at || data.ends_at ? `<p class="meta">Duration: ${escapeHtml(formatDate(data.starts_at) || '—')} → ${escapeHtml(formatDate(data.ends_at || data.deadline_date) || '—')}</p>` : ''}
-        ${cover ? `<img class="cover-thumb" style="width:100%;height:180px;margin-top:12px" src="${escapeHtml(cover)}" alt="">` : ''}
+        ${cover ? `<img class="post-cover"  src="${escapeHtml(cover)}" alt="">` : ''}
+        ${data.venue || data.call_time ? `<div class="notice">${data.venue ? `<strong>Venue:</strong> ${escapeHtml(data.venue)}` : ''}${data.call_time ? `<br><strong>Call time:</strong> ${escapeHtml(data.call_time.slice(0,5))} PHT (Asia/Manila)` : ''}</div>` : ''}
         <div class="author-row">
           <img src="${escapeHtml(avatarUrl(author, author.full_name))}" alt="">
-          <div><strong>${escapeHtml(author.full_name || 'Coordinator')}</strong><p class="meta">${relativeTime(data.created_at)}</p></div>
+          <div><strong>${escapeHtml(author.full_name || 'Coordinator')}</strong><p class="meta">${relativeTime(data.created_at)}${data.updated_at && Date.parse(data.updated_at) > Date.parse(data.created_at) + 1000 ? ` · Updated ${escapeHtml(formatDate(data.updated_at, true))}` : ''}</p></div>
         </div>
         ${files.length ? `<div class="attachments">${files.map((f) => `<a href="${escapeHtml(f.file_url)}" target="_blank" rel="noopener">${icon('doc')}${escapeHtml(f.file_name || 'File')}</a>`).join('')}</div>` : ''}
         ${renderReactions(data)}
       </article>`;
       bindReactions(box);
       document.title = `${data.title} · TK Cam Norte`;
+      const read = await apiJson('/announcements?resource=receipts', {method:'POST', body:JSON.stringify({announcementId:id,action:'read',version:versionOf(data)})});
+      if (read.ok) loadNotifications();
+      await renderResponse();
+    }
+
+
+    async function renderResponse() {
+      const box = document.getElementById('responseCard');
+      if (!currentPost?.requires_ack) { box.hidden = true; return; }
+      box.hidden = false;
+      const {ok, data} = await apiJson('/announcements?resource=receipts');
+      if (!ok) { box.innerHTML = '<p class="meta">Response tracking is unavailable. Please try again later.</p>'; return; }
+      const receipt = data.find(r => r.announcement_id === id);
+      const acknowledged = isCurrent(receipt?.acknowledged_version, currentPost);
+      box.innerHTML = `<div class="response-row"><div><h3>${acknowledged ? 'Acknowledged. Thank you.' : 'Please acknowledge this update'}</h3><p class="meta">${acknowledged ? 'Your acknowledgment of this version is saved.' : 'Confirm that you have read and understood these instructions.'}</p></div><button class="btn ${acknowledged ? 'btn-ghost' : ''}" id="acknowledge" ${acknowledged ? 'disabled' : ''}>${acknowledged ? 'Acknowledged' : 'I acknowledge'}</button></div>${user.role === 'admin' ? '<div class="response-list" id="responseList">Loading member responses…</div>' : ''}`;
+      document.getElementById('acknowledge').onclick = async e => {
+        e.target.disabled = true;
+        const result = await apiJson('/announcements?resource=receipts',{method:'POST',body:JSON.stringify({announcementId:id,action:'acknowledge',version:versionOf(currentPost)})});
+        if (!result.ok) { e.target.disabled = false; showToast(result.error,'error'); return; }
+        renderResponse();
+      };
+      if (user.role === 'admin') {
+        const [responses, members] = await Promise.all([apiJson('/announcements?resource=receipts&announcementId='+encodeURIComponent(id)),apiJson('/users/all')]);
+        const list = document.getElementById('responseList');
+        if (!responses.ok || !members.ok) { list.textContent = 'Member responses could not be loaded.'; return; }
+        const byUser = new Map(responses.data.map(r => [r.user_id, r]));
+        list.innerHTML = '<strong>Member acknowledgments</strong>' + members.data.map(m => `<div>${escapeHtml(m.full_name)} <span class="meta"> · ${isCurrent(byUser.get(m.id)?.acknowledged_version,currentPost) ? 'Acknowledged' : 'Awaiting acknowledgment'}</span></div>`).join('');
+      }
     }
 
     document.getElementById('sendComment').onclick = async () => {
