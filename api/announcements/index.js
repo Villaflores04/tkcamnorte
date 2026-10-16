@@ -1,3 +1,4 @@
+import receiptsHandler from '../_lib/receipts.js';
 import { validateAnnouncement } from '../_lib/announcement-validation.js';
 import { requireUser, requireAdmin, CATEGORIES } from '../_lib/auth.js';
 import { supabase, ANNOUNCEMENT_SELECT } from '../_lib/supabase.js';
@@ -38,6 +39,7 @@ function announcementPayload(body, userId, isCreate = false) {
 }
 
 export default async function handler(req, res) {
+  if (req.query?.resource === 'receipts') return receiptsHandler(req, res);
   const session = await requireUser(req, res);
   if (!session) return;
 

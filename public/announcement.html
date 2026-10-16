@@ -102,7 +102,7 @@
       </article>`;
       bindReactions(box);
       document.title = `${data.title} · TK Cam Norte`;
-      const read = await apiJson('/receipts', {method:'POST', body:JSON.stringify({announcementId:id,action:'read',version:versionOf(data)})});
+      const read = await apiJson('/announcements?resource=receipts', {method:'POST', body:JSON.stringify({announcementId:id,action:'read',version:versionOf(data)})});
       if (read.ok) loadNotifications();
       await renderResponse();
     }
@@ -112,19 +112,19 @@
       const box = document.getElementById('responseCard');
       if (!currentPost?.requires_ack) { box.hidden = true; return; }
       box.hidden = false;
-      const {ok, data} = await apiJson('/receipts');
+      const {ok, data} = await apiJson('/announcements?resource=receipts');
       if (!ok) { box.innerHTML = '<p class="meta">Response tracking is unavailable. Please try again later.</p>'; return; }
       const receipt = data.find(r => r.announcement_id === id);
       const acknowledged = isCurrent(receipt?.acknowledged_version, currentPost);
       box.innerHTML = `<div class="response-row"><div><h3>${acknowledged ? 'Acknowledged. Thank you.' : 'Please acknowledge this update'}</h3><p class="meta">${acknowledged ? 'Your acknowledgment of this version is saved.' : 'Confirm that you have read and understood these instructions.'}</p></div><button class="btn ${acknowledged ? 'btn-ghost' : ''}" id="acknowledge" ${acknowledged ? 'disabled' : ''}>${acknowledged ? 'Acknowledged' : 'I acknowledge'}</button></div>${user.role === 'admin' ? '<div class="response-list" id="responseList">Loading member responses…</div>' : ''}`;
       document.getElementById('acknowledge').onclick = async e => {
         e.target.disabled = true;
-        const result = await apiJson('/receipts',{method:'POST',body:JSON.stringify({announcementId:id,action:'acknowledge',version:versionOf(currentPost)})});
+        const result = await apiJson('/announcements?resource=receipts',{method:'POST',body:JSON.stringify({announcementId:id,action:'acknowledge',version:versionOf(currentPost)})});
         if (!result.ok) { e.target.disabled = false; showToast(result.error,'error'); return; }
         renderResponse();
       };
       if (user.role === 'admin') {
-        const [responses, members] = await Promise.all([apiJson('/receipts?announcementId='+encodeURIComponent(id)),apiJson('/users/all')]);
+        const [responses, members] = await Promise.all([apiJson('/announcements?resource=receipts&announcementId='+encodeURIComponent(id)),apiJson('/users/all')]);
         const list = document.getElementById('responseList');
         if (!responses.ok || !members.ok) { list.textContent = 'Member responses could not be loaded.'; return; }
         const byUser = new Map(responses.data.map(r => [r.user_id, r]));

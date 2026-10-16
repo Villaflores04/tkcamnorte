@@ -1,5 +1,5 @@
-import { requireUser } from './_lib/auth.js';
-import { supabase } from './_lib/supabase.js';
+import { requireUser } from './auth.js';
+import { supabase } from './supabase.js';
 
 export default async function handler(req, res) {
   const session = await requireUser(req, res);

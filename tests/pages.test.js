@@ -15,10 +15,10 @@ async function setup(page,options={}) {
  w.fetch=async(endpoint,request={})=>{
   calls.push({endpoint,request});const url=new URL(endpoint,'https://example.test');let data,status=200;
   if(url.pathname==='/api/auth/me')data=user;
-  else if(url.pathname==='/api/announcements') {if(options.failPosts){data={error:'Test unavailable'};status=503;} else data=url.searchParams.has('id')?posts.find(p=>p.id===url.searchParams.get('id')):posts;}
+  else if(url.pathname==='/api/announcements' && !url.searchParams.has('resource')) {if(options.failPosts){data={error:'Test unavailable'};status=503;} else data=url.searchParams.has('id')?posts.find(p=>p.id===url.searchParams.get('id')):posts;}
   else if(url.pathname==='/api/users/all')data=[{id:user.id,full_name:user.fullName,role:'admin',username:'member'}];
   else if(url.pathname==='/api/users/profile')data=user;
-  else if(url.pathname==='/api/receipts'){
+  else if(url.pathname==='/api/announcements' && url.searchParams.get('resource')==='receipts'){
    if(request.method==='POST'){const b=JSON.parse(request.body);let r=receipts.find(r=>r.announcement_id===b.announcementId);if(!r){r={announcement_id:b.announcementId,user_id:user.id};receipts.push(r);}r.read_version=b.version;if(b.action==='acknowledge')r.acknowledged_version=b.version;data={success:true};}else data=receipts;
   }else if(url.pathname==='/api/comments')data=[];else data={success:true};
   return {ok:status===200,status,json:async()=>structuredClone(data)};

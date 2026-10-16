@@ -499,7 +499,7 @@ export async function loadNotifications() {
   const list = document.getElementById('notifyList');
   const badge = document.getElementById('notifyBadge');
   if (!list) return;
-  const [posts, receipts] = await Promise.all([apiJson('/announcements'), apiJson('/receipts')]);
+  const [posts, receipts] = await Promise.all([apiJson('/announcements'), apiJson('/announcements?resource=receipts')]);
   if (!posts.ok || !receipts.ok) {
     list.innerHTML = '<p class="meta">Updates could not be loaded. Open Announcements to try again.</p>';
     if (badge) badge.hidden = true;

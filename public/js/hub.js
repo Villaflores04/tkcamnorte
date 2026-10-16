@@ -53,7 +53,7 @@ function renderDashboard() {
   }).join('') || '<p class="meta" style="margin-bottom:18px">No upcoming dates yet.</p>';
 }
 async function load() {
-  const [result, response] = await Promise.all([apiJson('/announcements'),apiJson('/receipts')]);
+  const [result, response] = await Promise.all([apiJson('/announcements'),apiJson('/announcements?resource=receipts')]);
   if (!result.ok) {
     document.getElementById('announcementsList').innerHTML = `<div class="card empty"><h3>Unable to load announcements</h3><p>${esc(result.error)}</p><button class="btn" id="retry">Try again</button></div>`;
     document.getElementById('retry').onclick = load;
