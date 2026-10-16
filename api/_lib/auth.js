@@ -69,6 +69,9 @@ export function generateToken(userId, role, passwordHash) {
   return jwt.sign({ userId, role, version: 2, sessionVersion: sessionVersion(passwordHash) }, JWT_SECRET, { expiresIn: '7d' });
 }
 
+// Escape ILIKE wildcards so underscores in usernames are matched literally.
+export function usernamePattern(username) { return username.replaceAll('_', '\\_'); }
+
 export const USERNAME_RE = /^[a-zA-Z0-9._]{3,24}$/;
 export const CATEGORIES = ['song_lineup', 'deadline', 'payment', 'project', 'general'];
 export const REACTION_TYPES = ['amen', 'heart', 'clap'];

@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { supabase } from '../_lib/supabase.js';
-import { hashPassword, generateToken, publicUser, USERNAME_RE } from '../_lib/auth.js';
+import { hashPassword, generateToken, publicUser, USERNAME_RE, usernamePattern } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
   const { data: existing } = await supabase
     .from('users')
     .select('id')
-    .ilike('username', username)
+    .ilike('username', usernamePattern(username))
     .maybeSingle();
 
   if (existing) return res.status(400).json({ error: 'Gamit na ang username.' });

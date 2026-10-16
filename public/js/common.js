@@ -146,7 +146,7 @@ export async function apiFetch(endpoint, options = {}) {
     throw new Error('Hindi makakonekta sa server. Suriin ang internet connection at subukan muli.');
   } finally { if (timeoutId) clearTimeout(timeoutId); }
 
-  if (response.status === 401) {
+  if (response.status === 401 && !['/auth/login', '/auth/register'].includes(endpoint)) {
     clearSession();
     if (!location.pathname.endsWith('/login.html') && !location.pathname.endsWith('/register.html')) {
       location.href = '/login.html';
@@ -540,6 +540,7 @@ export function initShell(user, options = {}) {
     <li><a href="/calendar.html" class="${path.endsWith('/calendar.html') ? 'active' : ''}">Schedule</a></li>
     <li><a href="/profile.html" class="${path.endsWith('/profile.html') ? 'active' : ''}">Account</a></li>
     ${user.role === 'admin' ? `<li><a href="/admin.html" class="${path.endsWith('/admin.html') ? 'active' : ''}">Coordinator</a></li>` : ''}
+    <li><a href="/access.html">Secret code</a></li>
     <li><a href="#" id="logoutBtn">Logout</a></li>
   ` : `
     <li><a href="/login.html">Login</a></li>
@@ -555,7 +556,7 @@ export function initShell(user, options = {}) {
     location.href = '/login.html';
   });
 
-  const labels = { Home: 'home', Announcements: 'megaphone', Schedule: 'clock', Account: 'user', Coordinator: 'edit', Logout: 'arrowRight' };
+  const labels = { Home: 'home', Announcements: 'megaphone', Schedule: 'clock', Account: 'user', Coordinator: 'edit', 'Secret code': 'lock', Logout: 'arrowRight' };
   navLinks.querySelectorAll('a').forEach(a => { const name = a.textContent.trim(); if (labels[name]) a.innerHTML = icon(labels[name]) + '<span>' + escapeHtml(name) + '</span>'; });
   if (!document.querySelector('.skip-link')) {
     const skip = document.createElement('a'); skip.className = 'skip-link'; skip.href = '#main-content'; skip.textContent = 'Skip to content';

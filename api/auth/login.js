@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { supabase } from '../_lib/supabase.js';
-import { comparePassword, generateToken, publicUser, USERNAME_RE } from '../_lib/auth.js';
+import { comparePassword, generateToken, publicUser, USERNAME_RE, usernamePattern } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   const { data: user } = await supabase
     .from('users')
     .select('id, full_name, username, password_hash, role, profile_image_url')
-    .ilike('username', username)
+    .ilike('username', usernamePattern(username))
     .maybeSingle();
 
   // Reject the previously published bootstrap password, even on an existing account.
