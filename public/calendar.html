@@ -39,8 +39,9 @@
   </main>
   <div id="bottomNavHost"></div>
   <script type="module">
-    import { requireAuth, initShell, apiJson, escapeHtml, formatDate, categoryLabel, bottomNav, parseDateValue } from '/js/common.js';
+    import { requireAuth, initShell, apiJson, escapeHtml, formatDate, categoryLabel, bottomNav, parseDateValue, getCommunityData, getToken } from '/js/common.js';
     import { todayKey } from '/js/dates.js';
+    const communityRequest = getToken() ? getCommunityData() : null;
     const user = await requireAuth();
     if (!user) throw new Error('auth');
     initShell(user);
@@ -110,8 +111,8 @@
     document.getElementById('prevMonth').onclick = () => { cursor.setMonth(cursor.getMonth() - 1); selected = new Date(cursor); renderMonth(); renderDay(); };
     document.getElementById('nextMonth').onclick = () => { cursor.setMonth(cursor.getMonth() + 1); selected = new Date(cursor); renderMonth(); renderDay(); };
 
-    const { ok, data, error } = await apiJson('/announcements');
-    items = ok && Array.isArray(data) ? data : [];
+    const { ok, data, error } = await (communityRequest || getCommunityData());
+    items = ok ? data.announcements : [];
     renderMonth();
     if (!ok) { document.getElementById('dayList').innerHTML = `<div class="card empty"><h3>Unable to load schedule</h3><p>${escapeHtml(error)}</p><button class="btn" id="retrySchedule">Try again</button></div>`; document.getElementById('retrySchedule').onclick = () => location.reload(); }
     else renderDay();

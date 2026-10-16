@@ -1,6 +1,8 @@
 import { initParallax, stageArtwork } from './motion.js';
-import { requireAuth, initShell, apiJson, escapeHtml as esc, formatDate, categoryLabel, CATEGORIES, bottomNav, firstName, coverOf, icon, renderReactions, bindReactions, avatarUrl, relativeTime } from './common.js';
+import { requireAuth, initShell, apiJson, escapeHtml as esc, formatDate, categoryLabel, CATEGORIES, bottomNav, firstName, coverOf, icon, renderReactions, bindReactions, avatarUrl, relativeTime, getCommunityData, getToken } from './common.js';
 import { activityStatus, todayKey, isCurrent, scheduleEntries } from './dates.js';
+// Start the protected data request while the current account is being verified.
+let initialCommunity = getToken() ? getCommunityData() : null;
 const user = await requireAuth();
 if (!user) throw new Error('Authentication required');
 initShell(user);
@@ -76,15 +78,16 @@ function renderDashboard() {
   }).join('') || '<p class="meta" style="margin-bottom:18px">No upcoming dates yet.</p>';
 }
 async function load() {
-  const [result, response] = await Promise.all([apiJson('/announcements'),apiJson('/announcements?resource=receipts')]);
+  const result = await (initialCommunity || getCommunityData({ force: true }));
+  initialCommunity = null;
   if (!result.ok) {
     document.getElementById('announcementsList').innerHTML = `<div class="card empty"><h3>Unable to load announcements</h3><p>${esc(result.error)}</p><button class="btn" id="retry">Try again</button></div>`;
     document.getElementById('retry').onclick = load;
     if (home) document.getElementById('upcomingList').textContent = 'Schedule is unavailable until announcements load.';
     return;
   }
-  posts = result.data || []; tracking = response.ok;
-  receipts = new Map((response.ok ? response.data : []).map(r => [r.announcement_id,r]));
+  posts = result.data.announcements || []; tracking = result.data.trackingAvailable;
+  receipts = new Map((result.data.receipts || []).map(r => [r.announcement_id,r]));
   if (!home) {
     for (const option of document.querySelectorAll('#viewFilter option')) if (['unread','action'].includes(option.value)) option.disabled = !tracking;
     if (!tracking && ['unread','action'].includes(view)) { view = 'all'; document.getElementById('viewFilter').value = view; }

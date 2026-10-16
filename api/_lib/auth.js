@@ -24,7 +24,10 @@ export function sessionVersion(hash) {
   return createHmac('sha256', JWT_SECRET).update(hash).digest('hex');
 }
 
+const requestSessions = new WeakMap();
+
 export async function requireUser(req, res) {
+  if (requestSessions.has(req)) return requestSessions.get(req);
   res.setHeader('Cache-Control', 'no-store');
   const token = verifyToken(req);
   if (!token || token.version !== 2) {
@@ -32,13 +35,15 @@ export async function requireUser(req, res) {
     return null;
   }
   const { data, error } = await supabase.from('users')
-    .select('id, role, password_hash').eq('id', token.userId).maybeSingle();
+    .select('id, role, password_hash, full_name, username, profile_image_url').eq('id', token.userId).maybeSingle();
   if (error) { res.status(503).json({ error: 'Unable to verify your account. Please try again.' }); return null; }
   if (!data || token.sessionVersion !== sessionVersion(data.password_hash)) {
     res.status(401).json({ error: 'Your session has ended. Please sign in again.' });
     return null;
   }
-  return { userId: data.id, role: data.role };
+  const session = { userId: data.id, role: data.role, user: publicUser(data) };
+  requestSessions.set(req, session);
+  return session;
 }
 
 export async function requireAdmin(req, res) {

@@ -14,7 +14,8 @@ async function setup(page,options={}) {
  w.localStorage.setItem('token','test');const calls=[];const receipts=[];
  w.fetch=async(endpoint,request={})=>{
   calls.push({endpoint,request});const url=new URL(endpoint,'https://example.test');let data,status=200;
-  if(url.pathname==='/api/auth/me')data=user;
+  if(url.pathname==='/api/auth/me') {data=options.user || user;if(options.failAuth){data={error:'Unavailable'};status=503;}}
+  else if(url.pathname==='/api/announcements' && url.searchParams.get('resource')==='hub') {if(options.failPosts){data={error:'Test unavailable'};status=503;}else data={announcements:posts,receipts,trackingAvailable:true};}
   else if(url.pathname==='/api/announcements' && !url.searchParams.has('resource')) {if(options.failPosts){data={error:'Test unavailable'};status=503;} else data=url.searchParams.has('id')?posts.find(p=>p.id===url.searchParams.get('id')):posts;}
   else if(url.pathname==='/api/users/all')data=[{id:user.id,full_name:user.fullName,role:'admin',username:'member'}];
   else if(url.pathname==='/api/users/profile')data=user;
@@ -30,7 +31,7 @@ async function setup(page,options={}) {
   else if(script.textContent.trim())w.eval(script.textContent);
  }
  const flush=()=>new Promise(resolve=>setTimeout(resolve,20));await flush();
- return {w,dom,calls,flush};
+ return {w,dom,calls,flush,common:modules.get('/js/common.js').namespace};
 }
 test('dashboard renders real cards, schedule, counts and four member destinations',async()=>{
  const {w,dom}=await setup('index.html');
@@ -65,4 +66,38 @@ test('coordinator templates, preview and local draft save retain content',async(
 });
 test('calendar errors remain errors instead of becoming an empty schedule',async()=>{
  const {w,dom}=await setup('calendar.html',{failPosts:true});assert.match(w.document.querySelector('#dayList').textContent,/Unable to load schedule/);assert.ok(w.document.querySelector('#retrySchedule'));dom.window.close();
+});
+
+test('dashboard startup uses one account check and one shared data request',async()=>{
+ const {dom,calls}=await setup('index.html');
+ assert.deepEqual(calls.map(c=>c.endpoint).sort(),['/api/announcements?resource=hub','/api/auth/me']);
+ dom.window.close();
+});
+test('drawer is above the backdrop in the root context and has a working close control',async()=>{
+ const {w,dom}=await setup('index.html');const drawer=w.document.querySelector('#navLinks');
+ assert.equal(drawer.parentElement,w.document.body);
+ w.document.querySelector('#hamburger').click();
+ assert.ok(drawer.classList.contains('show'));assert.equal(drawer.getAttribute('aria-modal'),'true');
+ assert.equal(w.document.activeElement.id,'closeMenuBtn');
+ w.document.querySelector('#closeMenuBtn').click();
+ assert.equal(drawer.classList.contains('show'),false);assert.equal(w.document.querySelector('#navScrim').classList.contains('show'),false);
+ assert.equal(w.document.activeElement.id,'hamburger');dom.window.close();
+});
+test('a mutation invalidates the shared snapshot before the next data read',async()=>{
+ const {dom,calls,common}=await setup('index.html');const count=()=>calls.filter(c=>c.endpoint.includes('resource=hub')).length;
+ await common.getCommunityData();assert.equal(count(),1);
+ await common.apiJson('/reactions',{method:'POST',body:JSON.stringify({announcementId:'one',type:'heart'})});
+ await common.getCommunityData();assert.equal(count(),2);dom.window.close();
+});
+test('member menu does not grant coordinator navigation',async()=>{
+ const {w,dom}=await setup('index.html',{user:{...user,role:'user'}});
+ assert.equal(w.document.querySelector('#navLinks a[href="/admin.html"]'),null);
+ assert.match(w.document.querySelector('.nav-user').textContent,/Member/);dom.window.close();
+});
+test('temporary account lookup failure offers retry without deleting the token',async()=>{
+ const {w,dom,common}=await setup('index.html');
+ w.fetch=async()=>({ok:false,status:503,json:async()=>({error:'Unavailable'})});
+ assert.equal(await common.requireAuth(),null);
+ assert.equal(w.localStorage.getItem('token'),'test');
+ assert.ok(w.document.querySelector('#retrySession'));dom.window.close();
 });

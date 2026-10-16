@@ -37,3 +37,25 @@ The checks parse all API, browser module and inline-page JavaScript. Tests cover
 ## Deliberate scope
 
 Drafts are stored on the current device and do not retain selected files. Shared devices should clear drafts when finished. The preview covers text and schedule fields; uploaded-media preview is not included. Notifications are in-app unread updates, not push notifications. Audience targeting, attendance RSVP, scheduled publishing, automatic archiving, durable login rate limiting and server-side feed pagination remain future work. The legacy Groups URL remains informational and is removed from primary navigation until real groups are configured.
+
+
+## Coordinator access
+
+The invitation code permits member registration only; it does not grant coordinator permissions. A signed-in account with `users.role = 'admin'` sees **Coordinator** in the menu and can open `/admin.html`. Members remain blocked by the API even if they type that URL.
+
+An existing coordinator can use **Coordinator → Members → Promote**. If the site owner needs to promote their own already-registered account, use the trusted Supabase SQL editor with the exact username from Account:
+
+```sql
+update public.users
+set role = 'admin'
+where username = 'YOUR_EXACT_USERNAME'
+returning username, role;
+```
+
+Replace the placeholder before running it, check that only the intended account is returned, then reload the site or sign in again. No shared/default admin password is provided.
+
+## Reload and drawer fixes
+
+Home and Announcements now start the account check and a shared hub snapshot in parallel. The notification bell consumes that same snapshot, reducing initial requests from five to two. The snapshot is held in page memory for 15 seconds after completion and invalidated around writes and account-token changes; it is never persisted across reloads. GETs in progress are coalesced, failed snapshots are discarded, and slow reads offer a retry. Authorization still checks the live account on every request. Profile data and coordinator checks reuse that same request's verified account, not a cross-request role cache.
+
+The hub API loads posts and receipts concurrently and omits unused comment-count reads. These changes reduce request/query work; no production database latency benchmark was taken. The mobile menu is mounted outside the sticky header's stacking context, above its backdrop, with a close button and focus restoration. No database migration or new environment variable is needed for this patch.
