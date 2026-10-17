@@ -1,4 +1,4 @@
-import { requireUser, hashPassword, comparePassword, publicUser } from '../_lib/auth.js';
+import { requireUser, hashPassword, comparePassword, isRetiredPassword, RETIRED_PASSWORD_MESSAGE, publicUser } from '../_lib/auth.js';
 import { supabase } from '../_lib/supabase.js';
 
 export default async function handler(req, res) {
@@ -42,6 +42,7 @@ export default async function handler(req, res) {
       if (!comparePassword(oldPassword, current.password_hash)) {
         return res.status(400).json({ error: 'Mali ang lumang password.' });
       }
+      if (isRetiredPassword(newPassword)) return res.status(400).json({ error: RETIRED_PASSWORD_MESSAGE });
       updates.password_hash = hashPassword(newPassword);
     }
 

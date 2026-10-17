@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { createHmac } from 'node:crypto';
+import { createHash, createHmac } from 'node:crypto';
 import { supabase } from './supabase.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -54,6 +54,14 @@ export async function requireAdmin(req, res) {
     return null;
   }
   return user;
+}
+
+// One previously published bootstrap password is blocked at sign-in. Setting screens use
+// this check too, so nobody can save a password that login would then refuse.
+const RETIRED_PASSWORD_SHA256 = '9c4b95dbebcbfb09a528dbacbb17ea0aeb2a31b859f470747f3ca1dd63c02256';
+export const RETIRED_PASSWORD_MESSAGE = 'This password was retired and cannot be used. Choose a different password.';
+export function isRetiredPassword(password) {
+  return createHash('sha256').update(String(password)).digest('hex') === RETIRED_PASSWORD_SHA256;
 }
 
 export function hashPassword(password) {
