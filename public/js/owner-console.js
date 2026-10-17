@@ -70,7 +70,7 @@ if (accessForm) {
     document.getElementById('managedRole').value=user?.role||'user';
     const password=document.getElementById('managedPassword');password.required=!user;password.type='password';
     document.getElementById('managedPasswordLabel').textContent=user?'New password · optional':'Initial password';
-    document.getElementById('managedPasswordHelp').textContent=user?'Leave blank to keep the password. Setting a new password ends existing sign-in sessions.':'12–72 characters. Share it privately with this user.';
+    document.getElementById('managedPasswordHelp').textContent=user?'Leave blank to keep the password. Setting a new password ends existing sign-in sessions.':'8–72 characters. Share it privately with this user.';
     document.getElementById('toggleManagedPassword').innerHTML=icon('eye');document.getElementById('toggleManagedPassword').setAttribute('aria-label','Show password');
     document.getElementById('saveUser').textContent=user?'Save changes':'Create user';userDialog.showModal();
   }

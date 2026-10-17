@@ -39,7 +39,7 @@ export default async function handler(req, res) {
   }
   if (body.password || creating) {
     const password = typeof body.password === 'string' ? body.password : '';
-    if (password.length < 12 || password.length > 72) return res.status(400).json({ error: 'New passwords must be 12–72 characters.' });
+    if (password.length < 8 || password.length > 72) return res.status(400).json({ error: 'New passwords must be 8–72 characters.' });
     updates.password_hash = hashPassword(password);
   }
   try {
