@@ -92,7 +92,7 @@ test('drawer is above the backdrop in the root context and has a working close c
 test('a mutation invalidates the shared snapshot before the next data read',async()=>{
  const {dom,calls,common}=await setup('index.html');const count=()=>calls.filter(c=>c.endpoint.includes('resource=hub')).length;
  await common.getCommunityData();assert.equal(count(),1);
- await common.apiJson('/reactions',{method:'POST',body:JSON.stringify({announcementId:'one',type:'heart'})});
+ await common.apiJson('/reactions',{method:'POST',body:JSON.stringify({announcementId:'one',type:'like'})});
  await common.getCommunityData();assert.equal(count(),2);dom.window.close();
 });
 test('member menu does not grant coordinator navigation',async()=>{

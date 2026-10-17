@@ -3,6 +3,7 @@ import { requireUser, requireAdmin, CATEGORIES } from '../_lib/auth.js';
 import { supabase, ANNOUNCEMENT_SELECT } from '../_lib/supabase.js';
 import { attachReactions } from '../_lib/reactions.js';
 import { databaseErrorMessage } from '../_lib/db-errors.js';
+import { removeVoiceFile } from '../_lib/voice.js';
 
 async function removeStorageFiles(announcementId) {
   const { data: files } = await supabase
@@ -64,8 +65,18 @@ export default async function handler(req, res) {
     if (req.body.callTime !== undefined) updates.call_time = req.body.callTime || null;
     if (req.body.requiresAck !== undefined) updates.requires_ack = Boolean(req.body.requiresAck);
 
+    let oldVoiceUrl = null;
+    if (req.body.voiceUrl !== undefined) {
+      updates.voice_url = req.body.voiceUrl || null;
+      updates.voice_duration = req.body.voiceUrl && Number.isInteger(req.body.voiceDuration) ? req.body.voiceDuration : null;
+      const { data: before } = await supabase.from('announcements').select('voice_url').eq('id', id).maybeSingle();
+      oldVoiceUrl = before?.voice_url || null;
+    }
+
     const { error: updateError } = await supabase.from('announcements').update(updates).eq('id', id);
     if (updateError) return res.status(500).json({ error: databaseErrorMessage(updateError, 'Unable to save this announcement. Please try again.') });
+
+    if (oldVoiceUrl && oldVoiceUrl !== updates.voice_url) await removeVoiceFile(oldVoiceUrl);
 
     if (Array.isArray(attachments)) {
       await removeStorageFiles(id);
@@ -88,12 +99,14 @@ export default async function handler(req, res) {
 
   if (req.method === 'DELETE') {
     if (!await requireAdmin(req, res)) return;
+    const { data: doomed } = await supabase.from('announcements').select('voice_url').eq('id', id).maybeSingle();
     await supabase.from('comments').delete().eq('announcement_id', id);
     await supabase.from('announcement_reactions').delete().eq('announcement_id', id);
     await removeStorageFiles(id);
     await supabase.from('announcement_attachments').delete().eq('announcement_id', id);
     const { error } = await supabase.from('announcements').delete().eq('id', id);
     if (error) return res.status(500).json({ error: error.message });
+    await removeVoiceFile(doomed?.voice_url);
     return res.status(200).json({ success: true });
   }
 

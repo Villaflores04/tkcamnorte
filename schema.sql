@@ -32,6 +32,8 @@ alter table public.announcements add column if not exists ends_at date;
 alter table public.announcements add column if not exists cover_image_url text;
 alter table public.announcements add column if not exists updated_by uuid references public.users(id);
 alter table public.announcements add column if not exists updated_at timestamptz default now();
+alter table public.announcements add column if not exists voice_url text;
+alter table public.announcements add column if not exists voice_duration integer;
 
 create table if not exists public.announcement_attachments (
   id uuid primary key default gen_random_uuid(),
@@ -53,7 +55,7 @@ create table if not exists public.announcement_reactions (
   id uuid primary key default gen_random_uuid(),
   announcement_id uuid references public.announcements(id) on delete cascade,
   user_id uuid references public.users(id) on delete cascade,
-  type text not null check (type in ('amen','heart','clap')),
+  type text not null default 'like' check (type = 'like'),
   created_at timestamptz not null default now(),
   unique (announcement_id, user_id)
 );

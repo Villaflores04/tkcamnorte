@@ -67,6 +67,8 @@ const ICONS = {
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l11-11-4-4L4 16z"/><path d="M13 7l4 4"/></svg>',
   sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M5 12H3M21 12h-2M6.2 6.2L4.8 4.8M19.2 19.2l-1.4-1.4M6.2 17.8L4.8 19.2M19.2 4.8l-1.4 1.4"/></svg>',
   moon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A7.5 7.5 0 1 1 9.5 4 6.5 6.5 0 0 0 20 14.5z"/></svg>',
+  like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4M8 23h8"/></svg>',
   hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V7a1.5 1.5 0 0 1 3 0v4"/><path d="M11 11V6a1.5 1.5 0 0 1 3 0v5"/><path d="M14 11V7.5a1.5 1.5 0 0 1 3 0V14a5 5 0 0 1-5 5H9a5 5 0 0 1-4.3-2.5L3 13.5"/></svg>'
 };
 
@@ -590,16 +592,13 @@ export async function loadNotifications() {
 }
 
 export function renderReactions(announcement) {
-  const rx = announcement.reactions || { amen: 0, heart: 0, clap: 0, mine: null };
-  const btn = (type, glyph, label) => `
-    <button type="button" class="rx-btn ${rx.mine === type ? 'active' : ''}" data-rx="${type}" data-id="${announcement.id}" aria-pressed="${rx.mine === type}" aria-label="${label}">
-      <span class="icon">${glyph}</span><em>${rx[type] || 0}</em>
-    </button>`;
+  const rx = announcement.reactions || { like: 0, mine: null };
+  const liked = rx.mine === 'like';
   return `
     <div class="rx-row" data-rx-row="${announcement.id}">
-      ${btn('amen', 'Amen', 'Amen')}
-      ${btn('heart', icon('heart'), 'Heart')}
-      ${btn('clap', icon('hand'), 'Clap')}
+      <button type="button" class="rx-btn ${liked ? 'active' : ''}" data-rx="like" data-id="${announcement.id}" aria-pressed="${liked}" aria-label="Like">
+        <span class="icon">${icon('like')}</span><span class="rx-label">Like</span><em>${rx.like || 0}</em>
+      </button>
     </div>`;
 }
 

@@ -55,6 +55,18 @@
         <input id="coverImage" type="file" accept="image/*">
         <p class="meta" id="existingCover"></p>
       </div>
+      <div class="field voice-field" id="voiceField">
+        <label for="voiceRecordBtn">Voice message <span class="meta">(optional)</span></label>
+        <div class="voice-controls">
+          <button type="button" class="btn btn-ghost" id="voiceRecordBtn"><span class="icon" data-icon="mic" aria-hidden="true"></span><span id="voiceRecordLabel">Record</span></button>
+          <span class="voice-timer" id="voiceTimer" hidden>0:00</span>
+          <label class="btn btn-ghost" for="voiceFile">Choose audio file</label>
+          <input id="voiceFile" type="file" accept="audio/*" hidden>
+          <button type="button" class="btn btn-ghost" id="voiceRemoveBtn" hidden>Remove</button>
+        </div>
+        <audio id="voicePreview" controls preload="metadata" hidden></audio>
+        <p class="meta" id="voiceStatus" aria-live="polite">Record up to 5 minutes, or choose an audio file. Members can listen on the announcement.</p>
+      </div>
       <div class="field upload-field">
         <label for="attachments">Attachments</label>
         <label class="upload-zone" for="attachments"><span class="icon" data-icon="upload" aria-hidden="true"></span><strong>Add attachments</strong><small>PDF, images, documents · Max 8MB per file</small></label>
@@ -140,6 +152,105 @@ document.querySelectorAll('.mobile-bottom-nav a[href^="#panel-"]').forEach((a) =
     document.querySelector(`[data-tab="${tab}"]`)?.click();
   };
 });
+
+// ---- Optional voice message ----
+const voice = { blob: null, previewUrl: null, duration: null, existingUrl: null, removeExisting: false, recorder: null, stream: null, timer: null, startedAt: 0 };
+const $v = (id) => document.getElementById(id);
+const VOICE_LIMIT_SECONDS = 300;
+const VOICE_EXT = { 'audio/webm': 'webm', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/wave': 'wav', 'audio/aac': 'aac' };
+const clock = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+function voiceStatus(text) { $v('voiceStatus').textContent = text; }
+function voiceRender() {
+  const recording = Boolean(voice.recorder);
+  const src = voice.blob ? voice.previewUrl : (voice.existingUrl && !voice.removeExisting ? voice.existingUrl : '');
+  const preview = $v('voicePreview');
+  if (src) { if (preview.getAttribute('src') !== src) preview.src = src; } else { preview.removeAttribute('src'); }
+  preview.hidden = !src || recording;
+  $v('voiceRemoveBtn').hidden = !src || recording;
+  $v('voiceRecordLabel').textContent = recording ? 'Stop' : (src ? 'Record again' : 'Record');
+  $v('voiceRecordBtn').classList.toggle('recording', recording);
+  $v('voiceTimer').hidden = !recording;
+}
+function voiceClearBlob() {
+  if (voice.previewUrl) URL.revokeObjectURL(voice.previewUrl);
+  voice.blob = null; voice.previewUrl = null; voice.duration = null;
+}
+function voiceSetBlob(blob, duration) {
+  voiceClearBlob();
+  voice.blob = blob; voice.duration = duration; voice.previewUrl = URL.createObjectURL(blob);
+  voiceStatus((duration ? 'Ready to publish (' + clock(duration) + '). ' : 'Ready to publish. ') + 'It is uploaded when you press ' + $v('saveBtn').textContent + '.');
+  voiceRender();
+}
+function voiceStopTracks() { voice.stream?.getTracks().forEach((t) => t.stop()); voice.stream = null; clearInterval(voice.timer); voice.timer = null; }
+async function voiceStart() {
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+    return voiceStatus('Recording is not supported in this browser. Choose an audio file instead.');
+  }
+  try { voice.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch { return voiceStatus('Microphone access was blocked. Allow the microphone for this site, or choose an audio file.'); }
+  const mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'].find((t) => MediaRecorder.isTypeSupported?.(t));
+  const chunks = [];
+  let recorder;
+  try { recorder = new MediaRecorder(voice.stream, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : undefined); }
+  catch { voiceStopTracks(); return voiceStatus('Recording is not supported in this browser. Choose an audio file instead.'); }
+  recorder.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+  recorder.onstop = () => {
+    const seconds = Math.max(1, Math.round((Date.now() - voice.startedAt) / 1000));
+    voiceStopTracks(); voice.recorder = null;
+    const type = String(recorder.mimeType || mime || 'audio/webm').split(';')[0];
+    if (!chunks.length) { voiceStatus('Nothing was recorded. Please try again.'); return voiceRender(); }
+    voiceSetBlob(new Blob(chunks, { type }), seconds);
+  };
+  voice.recorder = recorder; voice.startedAt = Date.now();
+  recorder.start();
+  $v('voiceTimer').textContent = '0:00';
+  voice.timer = setInterval(() => {
+    const seconds = Math.round((Date.now() - voice.startedAt) / 1000);
+    $v('voiceTimer').textContent = clock(seconds);
+    if (seconds >= VOICE_LIMIT_SECONDS) voice.recorder?.stop();
+  }, 250);
+  voiceStatus('Recording… press Stop when you are done (up to 5 minutes).');
+  voiceRender();
+}
+$v('voiceRecordBtn').onclick = () => { if (voice.recorder) voice.recorder.stop(); else voiceStart(); };
+$v('voiceFile').onchange = (e) => {
+  const file = e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  const type = String(file.type || '').split(';')[0].toLowerCase();
+  if (!VOICE_EXT[type]) return voiceStatus('That file type is not supported. Use an MP3, M4A, WAV, OGG or WebM audio file.');
+  if (file.size > 8 * 1024 * 1024) return voiceStatus('That audio file is larger than 8MB. Choose a shorter one.');
+  const probe = new Audio(); probe.preload = 'metadata';
+  const url = URL.createObjectURL(file);
+  const done = (duration) => { URL.revokeObjectURL(url); voiceSetBlob(new File([file], file.name, { type }), duration); };
+  probe.onloadedmetadata = () => done(Number.isFinite(probe.duration) ? Math.round(probe.duration) : null);
+  probe.onerror = () => done(null);
+  probe.src = url;
+};
+$v('voiceRemoveBtn').onclick = () => {
+  voiceClearBlob();
+  if (voice.existingUrl) voice.removeExisting = true;
+  voiceStatus(voice.existingUrl ? 'The current voice message will be removed when you save.' : 'Voice message removed.');
+  voiceRender();
+};
+function voiceReset(existingUrl = null) {
+  if (voice.recorder) { voice.recorder.onstop = null; try { voice.recorder.stop(); } catch {} voice.recorder = null; }
+  voiceStopTracks(); voiceClearBlob();
+  voice.existingUrl = existingUrl; voice.removeExisting = false;
+  voiceStatus(existingUrl ? 'A voice message is attached. Record or choose a file to replace it, or remove it.' : 'Record up to 5 minutes, or choose an audio file. Members can listen on the announcement.');
+  voiceRender();
+}
+async function voiceUploadForPayload(payload) {
+  if (voice.blob) {
+    const type = String(voice.blob.type || '').split(';')[0];
+    const file = new File([voice.blob], 'voice-' + Date.now() + '.' + (VOICE_EXT[type] || 'webm'), { type });
+    const uploaded = await uploadFiles([file], 'announcement-attachments');
+    if (!uploaded[0]?.fileUrl) throw new Error('The voice message could not be uploaded. Please try again.');
+    payload.voiceUrl = uploaded[0].fileUrl;
+    payload.voiceDuration = voice.duration;
+  } else if (voice.removeExisting) {
+    payload.voiceUrl = null;
+  }
+}
 function resetForm() {
   document.getElementById('announcementForm').reset();
   document.getElementById('editId').value = '';
@@ -147,6 +258,7 @@ function resetForm() {
   document.getElementById('saveBtn').textContent = 'Publish Announcement';
   document.getElementById('existingFiles').textContent = '';
   document.getElementById('existingCover').textContent = '';
+  voiceReset();
   setFormError('formError', '');
 }
 document.getElementById('resetBtn').onclick = () => { if (confirm('Clear the form and its saved draft?')) { localStorage.removeItem(draftKey); resetForm(); history.replaceState({}, '', '/admin.html'); document.getElementById('draftStatus').textContent = 'Draft cleared.'; } };
@@ -164,6 +276,7 @@ async function loadOne(id) {
   document.getElementById('venue').value = data.venue || '';
   document.getElementById('callTime').value = data.call_time || '';
   document.getElementById('requiresAck').checked = Boolean(data.requires_ack);
+  voiceReset(data.voice_url || null);
   document.getElementById('composeTitle').textContent = 'Edit announcement';
   document.getElementById('saveBtn').textContent = 'Save changes';
   document.getElementById('existingCover').textContent = data.cover_image_url ? 'May existing cover image. New upload replaces it.' : '';
@@ -178,6 +291,7 @@ document.getElementById('announcementForm').addEventListener('submit', async (e)
   const start = document.getElementById('startsAt').value, end = document.getElementById('endsAt').value;
   if (end && (!start || end < start)) return setFormError('formError','Choose an end date on or after the start date.');
   if (document.getElementById('callTime').value && !start) return setFormError('formError','Choose an activity date for the call time.');
+  if (voice.recorder) return setFormError('formError','Stop the voice recording before publishing.');
   publishing = true;
   const save = document.getElementById('saveBtn'); save.disabled = true; save.textContent = 'Publishing…';
   document.getElementById('resetBtn').disabled = true;
@@ -210,6 +324,7 @@ document.getElementById('announcementForm').addEventListener('submit', async (e)
   };
   if (attachments) payload.attachments = attachments;
   if (coverImageUrl) payload.coverImageUrl = coverImageUrl;
+  try { await voiceUploadForPayload(payload); } catch (err) { return setFormError('formError', err.message); }
   const { ok, error } = editId
     ? await apiJson(`/announcements/${encodeURIComponent(editId)}`, { method: 'PUT', body: JSON.stringify(payload) })
     : await apiJson('/announcements', { method: 'POST', body: JSON.stringify(payload) });

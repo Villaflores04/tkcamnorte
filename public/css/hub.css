@@ -8,7 +8,7 @@ html.dark{--bg:#0c1727;--surface:#142238;--ink:#edf3ff;--muted:#a2b1c8;--line:#2
 @media(max-width:760px){.hub-grid{grid-template-columns:1fr}.hub-rail{display:grid;grid-template-columns:1fr 1fr;gap:16px}.community-note{display:none}.welcome-date{display:none}.auth-wrap{grid-template-columns:1fr}.auth-story{display:none}.auth-card{padding:60px 26px 34px}.auth-brand{margin-bottom:36px}.container{padding:26px 18px 110px}.feature{padding:24px}.feature h2{font-size:24px}.quick-stats{gap:8px}.quick-stat{padding:14px}.quick-stat strong{font-size:24px}.quick-stat span{font-size:10px}.card{padding:20px}.welcome h1{font-size:30px}.topbar .brand-name{font-size:15px}.topbar .brand-name small{font-size:8px}.header-actions{gap:6px}.topbar{padding:0 16px}.header-actions .icon-btn,.hamburger{min-width:38px;width:38px;height:40px}.announcement-split{gap:12px}.cover-thumb{width:85px;height:85px}.card-foot{flex-wrap:wrap}.form-grid{gap:0 12px}.admin-item,.user-row{align-items:start;flex-direction:column}.admin-item .btn-row,.user-row .btn-row{margin-top:12px}.btn{padding:10px 16px}.stat-card{padding:14px}.stat-icon{display:none}.cal-grid{gap:4px}.cal-day{min-height:44px}.hub-rail{display:block}.section-head h2{font-size:20px}.upload-zone{flex-direction:column;text-align:center}.toolbar{flex-wrap:wrap}.toolbar select{width:auto}.response-row{align-items:start;flex-direction:column}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 @media(min-width:1001px){.nav-links{background:var(--navy);border:0}.nav-links a{color:#b7c7df}.nav-links a:hover{background:#1a3458}.nav-links a.active{background:#213e69;color:#fff;box-shadow:inset 3px 0 var(--yellow)}.nav-links .nav-user{border-color:#29405d;color:#fff}.nav-user span{color:#a9bad3}.nav-links .nav-avatar{border:2px solid #29405d}}
-.rx-btn[data-rx="amen"] .icon{width:auto;font-size:10px;font-weight:700}.group-card .meta{max-width:600px}
+.rx-btn .rx-label{font-size:13px;font-weight:600}.group-card .meta{max-width:600px}
 
 /* Blue and gold in light mode. Dark mode retains its established palette. */
 :root:not(.dark){--bg:#f5f9ff;--ink:#263c55;--muted:#63788f;--line:#e0eaf7;--blue:#1767d9;--soft:#edf5ff;--yellow:#e8bf58;--navy:#1971eb;--gold:#d4af37;--gold-soft:#fff8e6;--gold-ink:#69501a;--gold-sheen:linear-gradient(115deg,#f9e7b2 0%,#edcb76 45%,#dcb14d 72%,#f4d88e 100%)}
@@ -125,3 +125,16 @@ html:not(.dark) .community-note{background:linear-gradient(130deg,#edf5ff,#fff);
  .nav-scrim{z-index:40;background:#10254438}
  .nav-links .nav-user{padding-bottom:8px}
 }
+
+.voice-field .voice-controls{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0}
+.voice-field .voice-controls .btn{display:inline-flex;align-items:center;gap:6px;min-height:44px}
+.voice-field .voice-controls .icon{width:18px;height:18px}
+.voice-field .voice-controls .recording{border-color:#c62828;color:#c62828}
+.voice-field .voice-controls .recording .icon{animation:voicePulse 1s ease-in-out infinite}
+.voice-timer{font-variant-numeric:tabular-nums;font-weight:600;color:#c62828}
+.voice-field audio,.voice-card audio{display:block;width:100%;max-width:520px;margin:8px 0}
+.voice-card{border:1px solid var(--line);background:var(--soft);border-radius:12px;padding:12px 14px;margin:14px 0}
+.voice-card-head{display:flex;align-items:center;gap:8px}
+.voice-card-head .icon{width:18px;height:18px;color:var(--blue)}
+@keyframes voicePulse{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.voice-field .voice-controls .recording .icon{animation:none}}

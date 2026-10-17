@@ -1,5 +1,6 @@
 import { requireAdmin } from '../_lib/auth.js';
 import { supabase } from '../_lib/supabase.js';
+import { removeVoiceFile } from '../_lib/voice.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'DELETE' && req.method !== 'POST') {
@@ -9,6 +10,7 @@ export default async function handler(req, res) {
   const id = req.query?.id || req.body?.id;
   if (!id) return res.status(400).json({ error: 'Missing announcement id' });
 
+  const { data: doomed } = await supabase.from('announcements').select('voice_url').eq('id', id).maybeSingle();
   await supabase.from('comments').delete().eq('announcement_id', id);
   await supabase.from('announcement_reactions').delete().eq('announcement_id', id);
 
@@ -32,5 +34,6 @@ export default async function handler(req, res) {
   await supabase.from('announcement_attachments').delete().eq('announcement_id', id);
   const { error } = await supabase.from('announcements').delete().eq('id', id);
   if (error) return res.status(500).json({ error: error.message });
+  await removeVoiceFile(doomed?.voice_url);
   res.status(200).json({ success: true });
 }

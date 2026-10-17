@@ -82,11 +82,11 @@ export function usernamePattern(username) { return username.replaceAll('_', '\\_
 
 export const USERNAME_RE = /^[a-zA-Z0-9._]{3,24}$/;
 export const CATEGORIES = ['song_lineup', 'deadline', 'payment', 'project', 'general'];
-export const REACTION_TYPES = ['amen', 'heart', 'clap'];
+export const REACTION_TYPES = ['like'];
 export const ALLOWED_BUCKETS = ['announcement-attachments', 'profile-images'];
 export const ALLOWED_MIME = [
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
-  'application/pdf', 'audio/mpeg', 'audio/mp4', 'audio/wav',
+  'application/pdf', 'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/x-m4a', 'audio/aac', 'audio/wav', 'audio/x-wav', 'audio/wave', 'audio/webm', 'audio/ogg',
   'video/mp4', 'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ];
