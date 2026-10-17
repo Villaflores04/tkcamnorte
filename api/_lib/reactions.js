@@ -1,5 +1,9 @@
 import { supabase } from './supabase.js';
 
+const empty = () => ({ like: 0, mine: null });
+
+// Likes are the only reaction. Any older reaction row (amen, heart, clap) that has not
+// been migrated yet is counted as a like so the numbers stay right before the SQL runs.
 export async function attachReactions(announcements, userId) {
   if (!announcements?.length) return announcements || [];
   const ids = announcements.map((a) => a.id);
@@ -11,25 +15,21 @@ export async function attachReactions(announcements, userId) {
   if (error) {
     return announcements.map((a) => ({
       ...a,
-      reactions: { amen: 0, heart: 0, clap: 0, mine: null },
+      reactions: empty(),
       reactionsEnabled: false
     }));
   }
 
   const byPost = {};
   for (const row of data || []) {
-    if (!byPost[row.announcement_id]) {
-      byPost[row.announcement_id] = { amen: 0, heart: 0, clap: 0, mine: null };
-    }
-    if (byPost[row.announcement_id][row.type] !== undefined) {
-      byPost[row.announcement_id][row.type] += 1;
-    }
-    if (row.user_id === userId) byPost[row.announcement_id].mine = row.type;
+    if (!byPost[row.announcement_id]) byPost[row.announcement_id] = empty();
+    byPost[row.announcement_id].like += 1;
+    if (row.user_id === userId) byPost[row.announcement_id].mine = 'like';
   }
 
   return announcements.map((a) => ({
     ...a,
-    reactions: byPost[a.id] || { amen: 0, heart: 0, clap: 0, mine: null },
+    reactions: byPost[a.id] || empty(),
     reactionsEnabled: true
   }));
 }

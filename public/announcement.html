@@ -89,6 +89,7 @@
         </div>
         <h1>${escapeHtml(data.title)}</h1>
         <p class="body-text">${escapeHtml(data.content)}</p>
+        ${data.voice_url ? `<div class="voice-card"><div class="voice-card-head"><span class="icon" aria-hidden="true">${icon('mic')}</span><strong>Voice message</strong>${Number.isInteger(data.voice_duration) ? `<span class="meta">${Math.floor(data.voice_duration / 60)}:${String(data.voice_duration % 60).padStart(2, '0')}</span>` : ''}</div><audio controls preload="metadata" src="${escapeHtml(data.voice_url)}">Your browser cannot play this voice message.</audio></div>` : ''}
         ${due ? `<div class="deadline-box"><strong>${icon('clock')}${escapeHtml(due.label.toUpperCase())}</strong><span class="meta">${escapeHtml(formatDate(data.deadline_date || data.ends_at))}</span></div>` : ''}
         ${data.starts_at || data.ends_at ? `<p class="meta">Duration: ${escapeHtml(formatDate(data.starts_at) || '—')} → ${escapeHtml(formatDate(data.ends_at || data.deadline_date) || '—')}</p>` : ''}
         ${cover ? `<img class="post-cover"  src="${escapeHtml(cover)}" alt="">` : ''}

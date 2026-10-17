@@ -11,7 +11,10 @@ export function validateAnnouncement(body) {
   if (body.callTime && !body.startsAt) return 'A call time needs an activity date.';
   if (body.venue && String(body.venue).length > 250) return 'Venue must be 250 characters or fewer.';
   if (body.attachments !== undefined && (!Array.isArray(body.attachments) || body.attachments.length > 8)) return 'Attach up to 8 files.';
-  const urls = [body.coverImageUrl, ...(Array.isArray(body.attachments) ? body.attachments.map(a => a?.fileUrl) : [])].filter(Boolean);
+  if (body.voiceDuration !== undefined && body.voiceDuration !== null && (!Number.isInteger(body.voiceDuration) || body.voiceDuration < 0 || body.voiceDuration > 900)) return 'A voice message can be up to 15 minutes long.';
+  const storageBase = process.env.SUPABASE_URL ? process.env.SUPABASE_URL.replace(/\/$/, '') + '/storage/v1/object/public/announcement-attachments/' : '';
+  if (body.voiceUrl && storageBase && !String(body.voiceUrl).startsWith(storageBase)) return 'Upload the voice message through this site.';
+  const urls = [body.voiceUrl, body.coverImageUrl, ...(Array.isArray(body.attachments) ? body.attachments.map(a => a?.fileUrl) : [])].filter(Boolean);
   if (urls.some(value => { try { return new URL(value).protocol !== 'https:'; } catch { return true; } })) return 'File URLs must use HTTPS.';
   return null;
 }

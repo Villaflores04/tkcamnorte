@@ -19,6 +19,10 @@ function announcementPayload(body, userId, isCreate = false) {
   if (body.venue !== undefined) row.venue = String(body.venue || '').trim() || null;
   if (body.callTime !== undefined) row.call_time = body.callTime || null;
   if (body.requiresAck !== undefined) row.requires_ack = Boolean(body.requiresAck);
+  if (body.voiceUrl !== undefined) {
+    row.voice_url = body.voiceUrl || null;
+    row.voice_duration = body.voiceUrl && Number.isInteger(body.voiceDuration) ? body.voiceDuration : null;
+  }
   if (isCreate) row.created_by = userId;
   row.updated_by = userId;
   row.updated_at = new Date().toISOString();
