@@ -5,7 +5,7 @@ import {createHmac} from 'node:crypto';
 process.env.SUPABASE_URL='https://example.supabase.co';
 process.env.SUPABASE_SERVICE_ROLE_KEY='test-service-key';
 process.env.JWT_SECRET='owner-tests-jwt-secret-not-for-production';
-const CODE='test-only-private-code-at-least-20-characters';
+const CODE='482916';
 process.env.OWNER_ACCESS_CODE=CODE;
 const {default:access,ownerSession}=await import('../api/_lib/owner-access.js');
 const {default:manage}=await import('../api/users/promote.js');
@@ -15,8 +15,8 @@ const origin='https://tk.example';
 function response(){return {code:200,headers:{},setHeader(k,v){this.headers[k]=v;},status(code){this.code=code;return this;},json(data){this.body=data;return this;}};}
 function request(method='GET',body={},cookie=''){return {method,body,query:{},headers:{host:'tk.example',origin,cookie,'x-real-ip':'test-address'}};}
 async function unlock(){process.env.OWNER_ACCESS_CODE=CODE;const res=response();await access(request('POST',{code:CODE}),res);assert.equal(res.code,200);return res.headers['Set-Cookie'].split(';')[0];}
-test('missing and short codes fail closed without a management cookie',async()=>{
- for(const value of ['', 'short']){process.env.OWNER_ACCESS_CODE=value;const res=response();await access(request('POST',{code:'anything'}),res);assert.equal(res.code,503);assert.equal(res.headers['Set-Cookie'],undefined);}
+test('missing and non-6-digit codes fail closed without a management cookie',async()=>{
+ for(const value of ['', 'short', '12345', '1234567', 'abcdef', '12 345']){process.env.OWNER_ACCESS_CODE=value;const res=response();await access(request('POST',{code:'anything'}),res);assert.equal(res.code,503);assert.equal(res.headers['Set-Cookie'],undefined);}
  process.env.OWNER_ACCESS_CODE=CODE;
 });
 test('wrong code and cross-origin unlock attempts never grant a session',async()=>{
@@ -30,7 +30,7 @@ test('correct code grants a secure short-lived cookie without returning the code
  const cookie=res.headers['Set-Cookie'].split(';')[0];assert.equal(ownerSession(request('GET',{},cookie)).scope,'manage-users');
 });
 test('code rotation and expiry invalidate management sessions',async()=>{
- const cookie=await unlock();process.env.OWNER_ACCESS_CODE=CODE+'-rotated';assert.equal(ownerSession(request('GET',{},cookie)),null);process.env.OWNER_ACCESS_CODE=CODE;
+ const cookie=await unlock();process.env.OWNER_ACCESS_CODE='739105';assert.equal(ownerSession(request('GET',{},cookie)),null);process.env.OWNER_ACCESS_CODE=CODE;
  const key=createHmac('sha256',process.env.JWT_SECRET).update('tk-owner-console:'+CODE).digest('hex');
  const expired=jwt.sign({scope:'manage-users'},key,{expiresIn:-1,audience:'tk-owner-console',issuer:'tkcamnorte'});
  assert.equal(ownerSession(request('GET',{},'tk_owner='+expired)),null);

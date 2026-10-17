@@ -3,11 +3,12 @@ import jwt from 'jsonwebtoken';
 
 const COOKIE = 'tk_owner';
 const LIFETIME = 15 * 60;
+const CODE_PATTERN = /^\d{6}$/;
 const attempts = new Map();
 const digest = value => createHash('sha256').update(value).digest();
 function signingKey() {
   const code = process.env.OWNER_ACCESS_CODE?.trim();
-  if (!process.env.JWT_SECRET || !code || code.length < 20 || code.length > 256) return null;
+  if (!process.env.JWT_SECRET || !code || !CODE_PATTERN.test(code)) return null;
   return createHmac('sha256', process.env.JWT_SECRET).update('tk-owner-console:' + code).digest('hex');
 }
 function cookie(value, age) {
@@ -55,8 +56,8 @@ export default async function accessHandler(req, res) {
     return res.status(200).json({ success: true });
   }
   const key = signingKey();
-  if (!key) return res.status(503).json({ error: 'Secret access is not configured. The site owner must set OWNER_ACCESS_CODE in Vercel to a private code of 20–256 characters, then redeploy.' });
-  // Burst protection per running instance; a long random code remains essential.
+  if (!key) return res.status(503).json({ error: 'Secret access is not configured. The site owner must set OWNER_ACCESS_CODE in Vercel to a private 6-digit code (numbers only), then redeploy.' });
+  // Burst protection per running instance; keep the 6-digit code private.
   const address = String(req.headers['x-real-ip'] || req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim();
   const now = Date.now();
   for (const [ip, entry] of attempts) if (entry.until <= now) attempts.delete(ip);
@@ -66,7 +67,7 @@ export default async function accessHandler(req, res) {
     return res.status(429).json({ error: 'Too many attempts. Wait one minute and try again.' });
   }
   const supplied = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
-  if (supplied.length > 256 || !timingSafeEqual(digest(supplied), digest(process.env.OWNER_ACCESS_CODE.trim()))) {
+  if (!CODE_PATTERN.test(supplied) || !timingSafeEqual(digest(supplied), digest(process.env.OWNER_ACCESS_CODE.trim()))) {
     attempt.failures++;
     if (attempts.size >= 2000) attempts.delete(attempts.keys().next().value);
     attempts.set(address, attempt);
