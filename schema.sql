@@ -80,3 +80,12 @@ alter table public.announcement_receipts enable row level security;
 -- Serverless endpoints authorize all access and use the service role.
 revoke all on public.announcement_receipts from anon, authenticated;
 create index if not exists idx_receipts_user on public.announcement_receipts(user_id);
+
+-- Storage buckets for attachments, cover images and profile photos (existing buckets are kept as they are).
+insert into storage.buckets (id, name, public)
+values ('announcement-attachments', 'announcement-attachments', true),
+       ('profile-images', 'profile-images', true)
+on conflict (id) do nothing;
+
+-- Refresh Supabase's API schema cache so new columns are visible immediately.
+notify pgrst, 'reload schema';

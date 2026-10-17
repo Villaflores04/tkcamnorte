@@ -2,6 +2,7 @@ import { validateAnnouncement } from '../_lib/announcement-validation.js';
 import { requireUser, requireAdmin, CATEGORIES } from '../_lib/auth.js';
 import { supabase, ANNOUNCEMENT_SELECT } from '../_lib/supabase.js';
 import { attachReactions } from '../_lib/reactions.js';
+import { databaseErrorMessage } from '../_lib/db-errors.js';
 
 async function removeStorageFiles(announcementId) {
   const { data: files } = await supabase
@@ -64,7 +65,7 @@ export default async function handler(req, res) {
     if (req.body.requiresAck !== undefined) updates.requires_ack = Boolean(req.body.requiresAck);
 
     const { error: updateError } = await supabase.from('announcements').update(updates).eq('id', id);
-    if (updateError) return res.status(500).json({ error: updateError.message });
+    if (updateError) return res.status(500).json({ error: databaseErrorMessage(updateError, 'Unable to save this announcement. Please try again.') });
 
     if (Array.isArray(attachments)) {
       await removeStorageFiles(id);

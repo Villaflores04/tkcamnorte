@@ -14,7 +14,7 @@ Private member hub for Teatro Kristiano Camarines Norte. Static ES modules, Verc
 
 ## Required deployment steps (before merging into production)
 
-1. Apply `migrations/003_premium_hub.sql` in the connected Supabase SQL editor. For a new database, run `schema.sql`. The migration only adds fields and a receipts table; existing posts remain intact.
+1. Apply `migrations/004_catch_up.sql` in the connected Supabase SQL editor (it includes everything in `migrations/003_premium_hub.sql`, adds any missing announcement columns and storage buckets, and refreshes Supabase's schema cache). Publishing fails with "Could not find the 'call_time' column" until this has been run. For a new database, run `schema.sql`. The migration only adds fields and a receipts table; existing posts remain intact.
 2. Confirm a coordinator has a secure, non-default password. The old published bootstrap password is deliberately rejected, and the automatic admin reset is removed. If needed, run `node scripts/reset-coordinator.mjs` in a trusted local environment with `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `TK_COORDINATOR_USERNAME`, and a new `TK_COORDINATOR_PASSWORD`. It updates an existing coordinator only, prints no credentials, and must never be deployed as an API. Clear the temporary password environment variable afterward.
 3. Configure Vercel's `MEMBER_INVITE_CODE` with a strong random invitation code and give it only to invited members. When absent, registration stays closed. Rotate it when necessary. It is not an admin credential.
 4. Keep `JWT_SECRET`, `SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` configured. Deploy the branch to a preview/staging environment first. All legacy tokens are invalidated by the new token version, so users must sign in again.

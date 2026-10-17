@@ -3,6 +3,7 @@ import { validateAnnouncement } from '../_lib/announcement-validation.js';
 import { requireUser, requireAdmin, CATEGORIES } from '../_lib/auth.js';
 import { supabase, ANNOUNCEMENT_SELECT } from '../_lib/supabase.js';
 import { attachReactions } from '../_lib/reactions.js';
+import { databaseErrorMessage } from '../_lib/db-errors.js';
 
 function announcementPayload(body, userId, isCreate = false) {
   const { title, content, category, deadlineDate, startsAt, endsAt, isPinned, coverImageUrl } = body || {};
@@ -89,7 +90,7 @@ export default async function handler(req, res) {
       .select(ANNOUNCEMENT_SELECT)
       .single();
 
-    if (insertError) return res.status(500).json({ error: insertError.message });
+    if (insertError) return res.status(500).json({ error: databaseErrorMessage(insertError, 'Unable to publish this announcement. Please try again.') });
 
     if (Array.isArray(attachments) && attachments.length) {
       await supabase.from('announcement_attachments').insert(
