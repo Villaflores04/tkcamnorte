@@ -41,7 +41,7 @@ Drafts are stored on the current device and do not retain selected files. Shared
 
 ## Secret-code user management
 
-1. In Vercel → Project Settings → Environment Variables, add `OWNER_ACCESS_CODE` with a private random value of **20–256 characters**. Configure Production and Preview as needed, then redeploy. The existing `JWT_SECRET` must also remain configured. No code is embedded in the frontend or repository, and management remains locked when the variable is missing or too short.
+1. In Vercel → Project Settings → Environment Variables, add `OWNER_ACCESS_CODE` with a private **6-digit numeric code** (digits only, for example `123456`; use your own). Configure Production and Preview as needed, then redeploy. The existing `JWT_SECRET` must also remain configured. No code is embedded in the frontend or repository, and management remains locked when the variable is missing or is not exactly 6 digits.
 2. Open **Secret code** at the bottom of Sign in / Create account, or in the member menu. Enter the code at `/access.html`. Success opens `/user-management.html`.
 3. Create and edit users, set initial/replacement passwords, promote members to Admin, demote admins, and remove eligible accounts. Admins sign in through the normal member form; **Coordinator → Compose** lets them publish announcements. Admins can read the member directory, but role changes and user CRUD now require the separate secret-code session.
 4. Use **Lock session** when finished. Management expires after 15 minutes. Rotating `OWNER_ACCESS_CODE` invalidates existing management sessions after redeployment. This code is separate from `MEMBER_INVITE_CODE`, which permits member registration only.
