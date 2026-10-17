@@ -6,7 +6,23 @@
 -- Typical causes: the reactions table was never created on the live database, or it still
 -- has the old rule that only allowed Amen / Heart / Clap.
 
--- 1. Make sure the reactions table exists (a member can have one like per announcement).
+-- 1. Make sure the tables exist (a member can have one like per announcement).
+create table if not exists public.announcement_attachments (
+  id uuid primary key default gen_random_uuid(),
+  announcement_id uuid references public.announcements(id) on delete cascade,
+  file_url text not null,
+  file_name text,
+  file_size int
+);
+create table if not exists public.comments (
+  id uuid primary key default gen_random_uuid(),
+  announcement_id uuid references public.announcements(id) on delete cascade,
+  user_id uuid references public.users(id) on delete cascade,
+  text text not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_comments_announcement on public.comments (announcement_id, created_at);
+
 create table if not exists public.announcement_reactions (
   id uuid primary key default gen_random_uuid(),
   announcement_id uuid references public.announcements(id) on delete cascade,
