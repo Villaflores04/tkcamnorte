@@ -1,5 +1,5 @@
 import accessHandler, { requireOwner } from '../_lib/owner-access.js';
-import { hashPassword, USERNAME_RE, usernamePattern } from '../_lib/auth.js';
+import { hashPassword, isRetiredPassword, RETIRED_PASSWORD_MESSAGE, USERNAME_RE, usernamePattern } from '../_lib/auth.js';
 import { supabase } from '../_lib/supabase.js';
 
 const FIELDS = 'id, full_name, username, role, profile_image_url, created_at';
@@ -40,6 +40,7 @@ export default async function handler(req, res) {
   if (body.password || creating) {
     const password = typeof body.password === 'string' ? body.password : '';
     if (password.length < 8 || password.length > 72) return res.status(400).json({ error: 'New passwords must be 8–72 characters.' });
+    if (isRetiredPassword(password)) return res.status(400).json({ error: RETIRED_PASSWORD_MESSAGE });
     updates.password_hash = hashPassword(password);
   }
   try {

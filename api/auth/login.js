@@ -1,6 +1,5 @@
-import { createHash } from 'node:crypto';
 import { supabase } from '../_lib/supabase.js';
-import { comparePassword, generateToken, publicUser, USERNAME_RE, usernamePattern } from '../_lib/auth.js';
+import { comparePassword, generateToken, isRetiredPassword, publicUser, USERNAME_RE, usernamePattern } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -19,7 +18,7 @@ export default async function handler(req, res) {
     .maybeSingle();
 
   // Reject the previously published bootstrap password, even on an existing account.
-  if (createHash('sha256').update(password).digest('hex') === '9c4b95dbebcbfb09a528dbacbb17ea0aeb2a31b859f470747f3ca1dd63c02256') {
+  if (isRetiredPassword(password)) {
     return res.status(403).json({ error: 'This password was retired. Ask the site owner to reset your account securely.' });
   }
   if (!user || !comparePassword(password, user.password_hash)) {

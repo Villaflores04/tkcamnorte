@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { supabase } from '../_lib/supabase.js';
-import { hashPassword, generateToken, publicUser, USERNAME_RE, usernamePattern } from '../_lib/auth.js';
+import { hashPassword, isRetiredPassword, RETIRED_PASSWORD_MESSAGE, generateToken, publicUser, USERNAME_RE, usernamePattern } from '../_lib/auth.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -31,6 +31,7 @@ export default async function handler(req, res) {
   if (password.length < 8 || password.length > 72) {
     return res.status(400).json({ error: 'Use a password between 8 and 72 characters.' });
   }
+  if (isRetiredPassword(password)) return res.status(400).json({ error: RETIRED_PASSWORD_MESSAGE });
 
   const { data: existing } = await supabase
     .from('users')
