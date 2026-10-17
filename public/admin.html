@@ -27,6 +27,7 @@
   <section class="card panel" id="panel-compose">
     <h2 id="composeTitle">Bagong anunsyo</h2>
     <p class="panel-lede">Create an update for TK Cam Norte members.</p>
+    <div class="success-banner" id="publishSuccess" role="status" aria-live="polite" hidden></div>
     <form id="announcementForm">
       <input type="hidden" id="editId">
       <div class="field"><label for="template">Start with a template</label><select id="template"><option value="">Blank announcement</option><option value="rehearsal">Rehearsal instructions</option><option value="lineup">Song line-up</option><option value="costume">Costume preparation</option><option value="deadline">Deadline reminder</option></select></div><div class="field"><label for="title">Title</label><input id="title" maxlength="180" required placeholder="Announcement title"></div>
@@ -98,6 +99,7 @@
 </nav>
 
 <script type="module">
+import { encodeWav, clockText, VOICE_SAMPLE_RATE } from '/js/wav.js';
 import {requireAuth,initShell,apiJson,uploadFiles,escapeHtml,formatDate,categoryLabel,showToast,setFormError,deadlineMeta,getCommunityData} from '/js/common.js';
 const user = await requireAuth('admin'); if (!user) throw new Error('auth'); initShell(user);
 const params = new URLSearchParams(location.search);
@@ -153,12 +155,25 @@ document.querySelectorAll('.mobile-bottom-nav a[href^="#panel-"]').forEach((a) =
   };
 });
 
+// ---- Publish confirmation ----
+function hidePublishSuccess() { document.getElementById('publishSuccess').hidden = true; }
+function showPublishSuccess({ id, editing, withVoice }) {
+  const box = document.getElementById('publishSuccess');
+  const view = id ? `<a class="btn btn-ghost" href="/announcement.html?id=${encodeURIComponent(id)}">View announcement</a>` : '';
+  const detail = editing
+    ? 'Your changes were saved and members will see the updated announcement.'
+    : 'Members can now see this announcement' + (withVoice ? ' and listen to your voice message' : '') + '.';
+  box.innerHTML = `<span class="success-mark" aria-hidden="true">✓</span><div class="success-text"><strong>${editing ? 'Changes saved successfully!' : 'Announcement published successfully!'}</strong><span>${detail}</span></div><div class="btn-row">${view}<button type="button" class="btn btn-ghost" id="dismissSuccess">Dismiss</button></div>`;
+  box.hidden = false;
+  document.getElementById('dismissSuccess').onclick = hidePublishSuccess;
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 // ---- Optional voice message ----
-const voice = { blob: null, previewUrl: null, duration: null, existingUrl: null, removeExisting: false, recorder: null, stream: null, timer: null, startedAt: 0 };
+const voice = { blob: null, previewUrl: null, duration: null, existingUrl: null, removeExisting: false, recorder: null, stream: null, timer: null, startedAt: 0, converting: false, job: 0 };
 const $v = (id) => document.getElementById(id);
 const VOICE_LIMIT_SECONDS = 300;
 const VOICE_EXT = { 'audio/webm': 'webm', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/ogg': 'ogg', 'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/wave': 'wav', 'audio/aac': 'aac' };
-const clock = (s) => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 function voiceStatus(text) { $v('voiceStatus').textContent = text; }
 function voiceRender() {
   const recording = Boolean(voice.recorder);
@@ -169,6 +184,7 @@ function voiceRender() {
   $v('voiceRemoveBtn').hidden = !src || recording;
   $v('voiceRecordLabel').textContent = recording ? 'Stop' : (src ? 'Record again' : 'Record');
   $v('voiceRecordBtn').classList.toggle('recording', recording);
+  $v('voiceRecordBtn').disabled = voice.converting;
   $v('voiceTimer').hidden = !recording;
 }
 function voiceClearBlob() {
@@ -178,10 +194,39 @@ function voiceClearBlob() {
 function voiceSetBlob(blob, duration) {
   voiceClearBlob();
   voice.blob = blob; voice.duration = duration; voice.previewUrl = URL.createObjectURL(blob);
-  voiceStatus((duration ? 'Ready to publish (' + clock(duration) + '). ' : 'Ready to publish. ') + 'It is uploaded when you press ' + $v('saveBtn').textContent + '.');
+  voiceStatus((duration ? 'Voice message ready — length ' + clockText(duration) + '. ' : 'Voice message ready. ') + 'It is uploaded when you press ' + $v('saveBtn').textContent + '.');
   voiceRender();
 }
 function voiceStopTracks() { voice.stream?.getTracks().forEach((t) => t.stop()); voice.stream = null; clearInterval(voice.timer); voice.timer = null; }
+// Browser recordings carry no length, so players show odd clocks. Decode the recording and
+// save it as a WAV file with the exact length written in. If the browser cannot decode it,
+// the original recording is kept (it still uploads and plays; only the player clock may look off).
+async function voiceToWav(raw) {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  const Offline = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!AudioCtx || !Offline) throw new Error('Audio conversion is not available.');
+  const ctx = new AudioCtx();
+  let decoded;
+  try { decoded = await ctx.decodeAudioData(await raw.arrayBuffer()); } finally { ctx.close?.(); }
+  if (!decoded.duration || !Number.isFinite(decoded.duration)) throw new Error('Could not read the recording.');
+  const offline = new Offline(1, Math.max(1, Math.ceil(decoded.duration * VOICE_SAMPLE_RATE)), VOICE_SAMPLE_RATE);
+  const source = offline.createBufferSource();
+  source.buffer = decoded; source.connect(offline.destination); source.start();
+  const rendered = await offline.startRendering();
+  const blob = new Blob([encodeWav(rendered.getChannelData(0), VOICE_SAMPLE_RATE)], { type: 'audio/wav' });
+  if (blob.size > 8 * 1024 * 1024) throw new Error('Converted recording is too large.');
+  return { blob, seconds: Math.max(1, Math.round(decoded.duration)) };
+}
+async function voiceFinish(raw, measuredSeconds) {
+  const job = ++voice.job;
+  voice.converting = true; voiceRender();
+  voiceStatus('Finishing your recording…');
+  let result = { blob: raw, seconds: measuredSeconds };
+  try { result = await voiceToWav(raw); } catch { /* keep the original recording */ }
+  if (job !== voice.job) return;   // the form was cleared or reloaded meanwhile
+  voice.converting = false;
+  voiceSetBlob(result.blob, result.seconds);
+}
 async function voiceStart() {
   if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
     return voiceStatus('Recording is not supported in this browser. Choose an audio file instead.');
@@ -199,14 +244,14 @@ async function voiceStart() {
     voiceStopTracks(); voice.recorder = null;
     const type = String(recorder.mimeType || mime || 'audio/webm').split(';')[0];
     if (!chunks.length) { voiceStatus('Nothing was recorded. Please try again.'); return voiceRender(); }
-    voiceSetBlob(new Blob(chunks, { type }), seconds);
+    voiceFinish(new Blob(chunks, { type }), seconds);
   };
   voice.recorder = recorder; voice.startedAt = Date.now();
   recorder.start();
   $v('voiceTimer').textContent = '0:00';
   voice.timer = setInterval(() => {
     const seconds = Math.round((Date.now() - voice.startedAt) / 1000);
-    $v('voiceTimer').textContent = clock(seconds);
+    $v('voiceTimer').textContent = clockText(seconds);
     if (seconds >= VOICE_LIMIT_SECONDS) voice.recorder?.stop();
   }, 250);
   voiceStatus('Recording… press Stop when you are done (up to 5 minutes).');
@@ -235,6 +280,7 @@ $v('voiceRemoveBtn').onclick = () => {
 function voiceReset(existingUrl = null) {
   if (voice.recorder) { voice.recorder.onstop = null; try { voice.recorder.stop(); } catch {} voice.recorder = null; }
   voiceStopTracks(); voiceClearBlob();
+  voice.job++; voice.converting = false;
   voice.existingUrl = existingUrl; voice.removeExisting = false;
   voiceStatus(existingUrl ? 'A voice message is attached. Record or choose a file to replace it, or remove it.' : 'Record up to 5 minutes, or choose an audio file. Members can listen on the announcement.');
   voiceRender();
@@ -277,6 +323,7 @@ async function loadOne(id) {
   document.getElementById('callTime').value = data.call_time || '';
   document.getElementById('requiresAck').checked = Boolean(data.requires_ack);
   voiceReset(data.voice_url || null);
+  hidePublishSuccess();
   document.getElementById('composeTitle').textContent = 'Edit announcement';
   document.getElementById('saveBtn').textContent = 'Save changes';
   document.getElementById('existingCover').textContent = data.cover_image_url ? 'May existing cover image. New upload replaces it.' : '';
@@ -292,6 +339,8 @@ document.getElementById('announcementForm').addEventListener('submit', async (e)
   if (end && (!start || end < start)) return setFormError('formError','Choose an end date on or after the start date.');
   if (document.getElementById('callTime').value && !start) return setFormError('formError','Choose an activity date for the call time.');
   if (voice.recorder) return setFormError('formError','Stop the voice recording before publishing.');
+  if (voice.converting) return setFormError('formError','Your voice recording is still being prepared. Try again in a moment.');
+  hidePublishSuccess();
   publishing = true;
   const save = document.getElementById('saveBtn'); save.disabled = true; save.textContent = 'Publishing…';
   document.getElementById('resetBtn').disabled = true;
@@ -325,12 +374,14 @@ document.getElementById('announcementForm').addEventListener('submit', async (e)
   if (attachments) payload.attachments = attachments;
   if (coverImageUrl) payload.coverImageUrl = coverImageUrl;
   try { await voiceUploadForPayload(payload); } catch (err) { return setFormError('formError', err.message); }
-  const { ok, error } = editId
+  const { ok, data: saved, error } = editId
     ? await apiJson(`/announcements/${encodeURIComponent(editId)}`, { method: 'PUT', body: JSON.stringify(payload) })
     : await apiJson('/announcements', { method: 'POST', body: JSON.stringify(payload) });
   if (!ok) return setFormError('formError', error);
-  showToast(editId ? 'Na-update ang anunsyo.' : 'Published.', 'success');
+  const withVoice = Boolean(payload.voiceUrl);
+  showToast(editId ? 'Changes saved successfully.' : 'Announcement published successfully.', 'success');
   resetForm();
+  showPublishSuccess({ id: saved?.id || editId, editing: Boolean(editId), withVoice });
   history.replaceState({}, '', '/admin.html');
   localStorage.removeItem(draftKey);
   loadPosts();
