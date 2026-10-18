@@ -1,4 +1,3 @@
-import { initParallax, stageArtwork } from './motion.js';
 import { requireAuth, initShell, apiJson, escapeHtml as esc, formatDate, categoryLabel, CATEGORIES, bottomNav, firstName, coverOf, icon, renderReactions, bindReactions, avatarUrl, relativeTime, getCommunityData, getToken } from './common.js';
 import { activityStatus, todayKey, isCurrent, scheduleEntries } from './dates.js';
 // Start the protected data request while the current account is being verified.
@@ -18,11 +17,11 @@ const hasRead = p => isCurrent(receipts.get(p.id)?.read_version, p);
 const needsAck = p => p.requires_ack && !isCurrent(receipts.get(p.id)?.acknowledged_version, p);
 const postUrl = p => '/announcement.html?id=' + encodeURIComponent(p.id);
 function eventMeta(p) {
-  return `<div class="event-meta">${p.starts_at ? `<span>${icon('clock')}${esc(formatDate(p.starts_at))}${p.call_time ? ' · ' + esc(p.call_time.slice(0,5)) + ' PHT' : ''}</span>` : ''}${p.venue ? `<span>${icon('pin')}${esc(p.venue)}</span>` : ''}${p.deadline_date ? `<span>Deadline: ${esc(formatDate(p.deadline_date))}</span>` : ''}</div>`;
+  return `<div class="event-meta">${p.starts_at ? `<span>${icon('clock')}${esc(formatDate(p.starts_at))}${p.call_time ? ', ' + esc(p.call_time.slice(0,5)) + ' PHT' : ''}</span>` : ''}${p.venue ? `<span>${icon('pin')}${esc(p.venue)}</span>` : ''}${p.deadline_date ? `<span>Deadline: ${esc(formatDate(p.deadline_date))}</span>` : ''}</div>`;
 }
 function card(p) {
   const status = activityStatus(p), cover = coverOf(p), author = p.created_by_user || {};
-  return `<article class="card announcement"><div class="tag-row"><span class="badge">${esc(categoryLabel(p.category))}</span>${p.is_pinned ? '<span class="badge badge-pin">PINNED</span>' : ''}${p.voice_url ? '<span class="badge">VOICE MESSAGE</span>' : ''}${status ? `<span class="badge badge-muted">${status}</span>` : ''}${tracking && !hasRead(p) ? '<span class="badge">UNREAD</span>' : ''}${tracking && needsAck(p) ? '<span class="badge badge-soon">RESPONSE NEEDED</span>' : ''}</div><div class="announcement-split"><div><h3><a class="announcement-title" href="${postUrl(p)}">${esc(p.title)}</a></h3><p class="body-text summary">${esc(p.content)}</p></div>${cover ? `<img class="cover-thumb" src="${esc(cover)}" alt="" loading="lazy">` : ''}</div>${eventMeta(p)}<div class="author-row"><img src="${esc(avatarUrl(author))}" alt=""><div><strong>${esc(author.full_name || 'Coordinator')}</strong><p class="meta">${relativeTime(p.created_at)}</p></div></div><div class="card-foot">${renderReactions(p)}<a class="see-all" href="${postUrl(p)}">View announcement ${icon('arrowRight')}</a></div></article>`;
+  return `<article class="card announcement"><div class="tag-row"><span class="badge">${esc(categoryLabel(p.category))}</span>${p.is_pinned ? '<span class="badge badge-pin">Pinned</span>' : ''}${p.voice_url ? `<span class="badge">${icon('mic')}Voice message</span>` : ''}${status ? `<span class="badge badge-muted">${status}</span>` : ''}${tracking && !hasRead(p) ? '<span class="badge badge-unread">Unread</span>' : ''}${tracking && needsAck(p) ? '<span class="badge badge-soon">Response needed</span>' : ''}</div><div class="announcement-split"><div><h3><a class="announcement-title" href="${postUrl(p)}">${esc(p.title)}</a></h3><p class="body-text summary">${esc(p.content)}</p></div>${cover ? `<img class="cover-thumb" src="${esc(cover)}" alt="" loading="lazy">` : ''}</div>${eventMeta(p)}<div class="author-row"><img src="${esc(avatarUrl(author))}" alt=""><div><strong>${esc(author.full_name || 'Coordinator')}</strong><p class="meta">${relativeTime(p.created_at)}</p></div></div><div class="card-foot">${renderReactions(p)}<a class="see-all" href="${postUrl(p)}">View announcement ${icon('arrowRight')}</a></div></article>`;
 }
 function render() {
   let filtered = posts.filter(p => (category === 'all' || p.category === category) && `${p.title} ${p.content} ${p.venue || ''}`.toLowerCase().includes(search.toLowerCase()));
@@ -53,28 +52,30 @@ function renderDashboard() {
   const responses = posts.filter(needsAck).length;
   const featureLabel = next ? 'Your next activity' : focus ? 'In the spotlight' : 'Your community space';
   const featureTitle = focus ? focus.title : 'Connected in purpose. Ready to serve.';
-  const featureCopy = focus ? (focus.content || '').slice(0, 130) + ((focus.content || '').length > 130 ? '…' : '') : 'A shared place for the updates, preparations, and moments that bring us together.';
+  const featureCopy = focus ? (focus.content || '').replace(/\s+/g, ' ').slice(0, 130) + ((focus.content || '').length > 130 ? '…' : '') : 'A shared place for the updates, preparations, and moments that bring us together.';
   const featureLink = focus ? postUrl(focus) : '/announcements.html';
+  const ticketDate = focus?.starts_at ? new Date(focus.starts_at.slice(0,10) + 'T12:00:00+08:00') : null;
+  const fmt = o => ticketDate.toLocaleDateString('en-PH', { ...o, timeZone: 'Asia/Manila' });
+  const ticket = ticketDate ? `<aside class="ticket" aria-label="Date and place"><div class="ticket-date"><span class="ticket-month">${esc(fmt({month:'long'}))}</span><span class="ticket-day">${Number(focus.starts_at.slice(8,10))}</span><span class="ticket-weekday">${esc(fmt({weekday:'long'}))}</span></div><div class="ticket-info">${focus.call_time ? `<div class="ticket-row"><span class="ticket-label">Call time</span><span class="ticket-value">${esc(focus.call_time.slice(0,5))} PHT</span></div>` : ''}${focus.venue ? `<div class="ticket-row"><span class="ticket-label">Venue</span><span class="ticket-value">${esc(focus.venue)}</span></div>` : ''}</div></aside>` : '';
   summary.innerHTML = `
-    <section class="feature feature-stage" data-parallax>
+    <section class="feature feature-stage${ticket ? '' : ' no-ticket'}">
       <div class="feature-copy">
         <div class="eyebrow"><span class="live-dot"></span>${esc(featureLabel)}</div>
         <h2>${esc(featureTitle)}</h2>
         <p class="feature-description">${esc(featureCopy)}</p>
-        ${focus ? eventMeta(focus) : ''}
+        ${focus && !ticket ? eventMeta(focus) : ''}
         <div class="feature-actions"><a class="btn btn-yellow" href="${featureLink}">${next ? 'View activity details' : focus ? 'Read announcement' : 'Explore announcements'} ${icon('arrowRight')}</a><a class="feature-secondary" href="/calendar.html">Open schedule ${icon('clock')}</a></div>
       </div>
-      ${stageArtwork()}
+      ${ticket}
     </section>
     <div class="quick-stats">
       <a class="quick-stat" href="/announcements.html?view=unread"><div class="stat-top"><span class="stat-glyph">${icon('megaphone')}</span><span class="stat-link-arrow">↗</span></div><strong>${tracking ? unread : '—'}</strong><span>Unread updates</span><small>${tracking && unread === 0 ? 'You’re all caught up' : 'Catch up on what’s new'}</small></a>
       <a class="quick-stat stat-gold" href="/announcements.html?view=action"><div class="stat-top"><span class="stat-glyph">${icon('check')}</span><span class="stat-link-arrow">↗</span></div><strong>${tracking ? responses : '—'}</strong><span>Need acknowledgment</span><small>${tracking && responses === 0 ? 'No responses pending' : 'Review and acknowledge'}</small></a>
       <a class="quick-stat" href="/calendar.html"><div class="stat-top"><span class="stat-glyph">${icon('clock')}</span><span class="stat-link-arrow">↗</span></div><strong>${entries.length}</strong><span>Upcoming dates</span><small>Make room for what’s next</small></a>
     </div>${!tracking ? '<p class="notice">Read and acknowledgment tracking is temporarily unavailable. You can still read announcements.</p>' : ''}`;
-  initParallax(summary);
   document.getElementById('upcomingList').innerHTML = entries.slice(0,4).map(e => {
     const date = new Date(e.date+'T12:00:00+08:00');
-    return `<a class="agenda-item" href="${postUrl(e.post)}"><div class="agenda-date">${date.toLocaleDateString('en-PH',{month:'short',timeZone:'Asia/Manila'})}<strong>${Number(e.date.slice(-2))}</strong></div><div><h4>${esc(e.post.title)}</h4><p>${e.kind}${e.kind === 'Activity' && e.post.call_time ? ' · ' + esc(e.post.call_time.slice(0,5)) + ' PHT' : ''}</p></div></a>`;
+    return `<a class="agenda-item" href="${postUrl(e.post)}"><div class="agenda-date">${date.toLocaleDateString('en-PH',{month:'short',timeZone:'Asia/Manila'})}<strong>${Number(e.date.slice(-2))}</strong></div><div><h4>${esc(e.post.title)}</h4><p>${e.kind}${e.kind === 'Activity' && e.post.call_time ? ', ' + esc(e.post.call_time.slice(0,5)) + ' PHT' : ''}</p></div></a>`;
   }).join('') || '<p class="meta" style="margin-bottom:18px">No upcoming dates yet.</p>';
 }
 async function load() {

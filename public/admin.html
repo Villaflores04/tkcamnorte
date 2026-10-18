@@ -17,7 +17,7 @@
   <ul class="nav-links" id="navLinks"></ul>
 </header>
 <main class="container">
-  <section class="admin-hero"><div class="eyebrow">COMMUNITY WORKSPACE</div><h1>Coordinator</h1><p>Publish updates and manage announcements for your community.</p></section>
+  <section class="admin-hero"><div class="eyebrow">Community workspace</div><h1>Coordinator</h1><p>Publish updates and manage announcements for your community.</p></section>
   <section class="stats-grid"><div class="stat-card"><span class="stat-icon icon" data-icon="megaphone" aria-hidden="true"></span><div><strong id="announcementCount">—</strong><span>Announcements</span></div></div><div class="stat-card"><span class="stat-icon icon" data-icon="users" aria-hidden="true"></span><div><strong id="memberCount">—</strong><span>Members</span></div></div></section>
   <div class="tabs" role="tablist" aria-label="Coordinator sections">
     <button type="button" class="active" data-tab="compose" role="tab" aria-selected="true">Compose</button>
@@ -133,7 +133,7 @@ document.getElementById('template').onchange = e => {
 };
 document.getElementById('previewBtn').onclick = () => {
   const value = id => escapeHtml(document.getElementById(id).value);
-  document.getElementById('previewContent').innerHTML = `<div class="eyebrow">MEMBER PREVIEW</div><span class="badge">${escapeHtml(categoryLabel(document.getElementById('category').value))}</span><h2 style="margin-top:16px">${value('title') || 'Untitled announcement'}</h2><p class="body-text">${value('content')}</p><div class="notice">${value('startsAt')}${value('endsAt') ? ' → '+value('endsAt') : ''}${value('callTime') ? ' · '+value('callTime')+' PHT' : ''}<br>${value('venue')}${value('deadlineDate') ? '<br>Deadline: '+value('deadlineDate') : ''}</div>${document.getElementById('requiresAck').checked ? '<p class="meta">Members will be asked to acknowledge this announcement.</p>' : ''}`;
+  document.getElementById('previewContent').innerHTML = `<div class="eyebrow">Member preview</div><span class="badge">${escapeHtml(categoryLabel(document.getElementById('category').value))}</span><h2 style="margin-top:16px">${value('title') || 'Untitled announcement'}</h2><p class="body-text">${value('content')}</p><div class="notice">${value('startsAt')}${value('endsAt') ? ' → '+value('endsAt') : ''}${value('callTime') ? ' · '+value('callTime')+' PHT' : ''}<br>${value('venue')}${value('deadlineDate') ? '<br>Deadline: '+value('deadlineDate') : ''}</div>${document.getElementById('requiresAck').checked ? '<p class="meta">Members will be asked to acknowledge this announcement.</p>' : ''}`;
   document.getElementById('previewDialog').showModal();
 };
 document.getElementById('closePreview').onclick = () => document.getElementById('previewDialog').close();
