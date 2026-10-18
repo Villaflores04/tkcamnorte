@@ -1,8 +1,9 @@
 import { requireUser, REACTION_TYPES } from '../_lib/auth.js';
 import { supabase } from '../_lib/supabase.js';
 import { attachReactions } from '../_lib/reactions.js';
+import { isOutOfDateDatabase } from '../_lib/db-errors.js';
 
-const NEEDS_UPDATE = 'Likes need the latest database update. The site owner must run migrations/005_like_and_voice.sql in the Supabase SQL editor.';
+const NEEDS_UPDATE = 'Likes need the latest database update. The site owner must run migrations/006_fix_likes.sql in the Supabase SQL editor.';
 
 export default async function handler(req, res) {
   const session = await requireUser(req, res);
@@ -25,7 +26,10 @@ export default async function handler(req, res) {
     if (existing) {
       // Pressing Like again removes the like. This also clears any older reaction type.
       const { error } = await supabase.from('announcement_reactions').delete().eq('id', existing.id);
-      if (error) return res.status(500).json({ error: 'Could not remove your like. Please try again.' });
+      if (error) {
+        console.error('Could not remove like:', error.code, error.message);
+        return res.status(500).json({ error: `Could not remove your like. Please try again. (error ${error.code || 'unknown'})` });
+      }
     } else {
       const { error } = await supabase.from('announcement_reactions').insert([{
         announcement_id: announcementId,
@@ -33,9 +37,10 @@ export default async function handler(req, res) {
         type
       }]);
       if (error) {
-        return res.status(500).json({
-          error: error.code === '23514' ? NEEDS_UPDATE : 'Could not save your like. Please try again.'
-        });
+        console.error('Could not save like:', error.code, error.message);
+        if (error.code === '23514' || isOutOfDateDatabase(error)) return res.status(500).json({ error: NEEDS_UPDATE });
+        if (error.code === '23503') return res.status(404).json({ error: 'This announcement no longer exists. Refresh the page.' });
+        return res.status(500).json({ error: `Could not save your like. Please try again. (error ${error.code || 'unknown'})` });
       }
     }
 
