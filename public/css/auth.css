@@ -7,7 +7,7 @@
 html:not(.dark) .auth-v2 .auth-intro{background:linear-gradient(145deg,#1769e4,#348ffa 70%,#62aaff)}
 .auth-intro:before{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at 90% 5%,#ffffff25,transparent 55%)}
 .auth-intro-copy{position:relative;z-index:2;max-width:430px}
-.auth-v2 .auth-intro .eyebrow{color:#ffe3a0;font-size:9px;letter-spacing:.16em;margin-bottom:25px}
+.auth-v2 .auth-intro .eyebrow{color:#ffe3a0;font-size:13px;letter-spacing:0;margin-bottom:25px}
 .auth-v2 .auth-intro h2{font-size:clamp(34px,3.4vw,52px);font-weight:800;line-height:1.13;letter-spacing:-1.8px;color:white}
 .auth-v2 .auth-intro h2 em{font-style:normal;color:#ffe2a0}
 .auth-v2 .auth-intro p{color:#e8f2ff;font-size:14px;line-height:1.8;max-width:330px;margin-top:24px}
@@ -19,7 +19,7 @@ html:not(.dark) .auth-v2 .auth-intro{background:linear-gradient(145deg,#1769e4,#
 .auth-foot-line{height:1px;width:30px;background:#f2d58b}
 .auth-form-area{display:flex;align-items:center;justify-content:center;padding:30px}
 .auth-v2 .auth-card{width:100%;max-width:420px;padding:14px 0;background:transparent;box-shadow:none;border:0;align-self:auto}
-.auth-v2 .auth-pill{display:inline-flex;padding:5px 9px;border-radius:6px;background:var(--soft);color:var(--blue);font-size:9px;font-weight:800;letter-spacing:.12em;margin-bottom:17px}
+.auth-v2 .auth-pill{display:inline-flex;padding:5px 9px;border-radius:6px;background:var(--soft);color:var(--blue);font-size:12px;font-weight:700;letter-spacing:0;margin-bottom:17px}
 .auth-v2 .auth-heading h1{font-size:32px;line-height:1.22;letter-spacing:-1.1px}
 .auth-v2 .auth-heading p{font-size:13px;line-height:1.7;margin-top:11px;max-width:350px}
 .auth-v2 .auth-form{margin-top:24px}
@@ -60,7 +60,7 @@ html.dark .auth-v2 .auth-submit{color:#102544}
  .auth-v2 .auth-nav .brand-name{font-size:16px}.auth-v2 .auth-nav .brand-name small{font-size:8px}.auth-v2 .auth-nav .mark{width:40px;height:40px;font-size:17px}
  .auth-v2 .auth-layout{display:block;margin:0;border:0;border-radius:0;background:transparent;min-height:0;box-shadow:none;overflow:visible}
  .auth-v2 .auth-intro{display:block;min-height:0;padding:25px 26px 59px;border-radius:0 0 28px 28px}
- .auth-v2 .auth-intro .eyebrow{font-size:8px;margin-bottom:12px;letter-spacing:.12em}
+ .auth-v2 .auth-intro .eyebrow{font-size:12px;margin-bottom:12px;letter-spacing:0}
  .auth-v2 .auth-intro h2{font-size:27px;letter-spacing:-.8px;line-height:1.2;max-width:270px}
  .auth-v2 .auth-intro h2 br{display:none}.auth-v2 .auth-intro h2 em{display:block}
  .auth-v2 .auth-intro p,.auth-intro-foot{display:none}
