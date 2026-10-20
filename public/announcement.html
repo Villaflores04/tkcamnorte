@@ -42,6 +42,7 @@
     import { versionOf } from '/js/dates.js';
     import { renderAcknowledgment } from '/js/acknowledge.js';
     import { initComments } from '/js/comments.js';
+    import { voicePlayerHtml, initVoicePlayers } from '/js/voice-player.js';
     let currentPost;
     const user = await requireAuth();
     if (!user) throw new Error('auth');
@@ -67,7 +68,7 @@
         </div>
         <h1>${escapeHtml(data.title)}</h1>
         <p class="body-text">${escapeHtml(data.content)}</p>
-        ${data.voice_url ? `<div class="voice-card"><div class="voice-card-head"><span class="icon" aria-hidden="true">${icon('mic')}</span><strong>Voice message</strong>${Number.isInteger(data.voice_duration) ? `<span class="meta">${Math.floor(data.voice_duration / 60)}:${String(data.voice_duration % 60).padStart(2, '0')}</span>` : ''}</div><audio controls preload="metadata" src="${escapeHtml(data.voice_url)}">Your browser cannot play this voice message.</audio></div>` : ''}
+        ${data.voice_url ? `<div class="voice-card"><div class="voice-card-head"><span class="icon" aria-hidden="true">${icon('mic')}</span><strong>Voice message</strong>${Number.isInteger(data.voice_duration) ? `<span class="meta">${Math.floor(data.voice_duration / 60)}:${String(data.voice_duration % 60).padStart(2, '0')}</span>` : ''}</div>${voicePlayerHtml(escapeHtml(data.voice_url), data.voice_duration)}</div>` : ''}
         ${due ? `<div class="deadline-box"><strong>${icon('clock')}${escapeHtml(due.label)}</strong><span class="meta">${escapeHtml(formatDate(data.deadline_date || data.ends_at))}</span></div>` : ''}
         ${data.starts_at || data.ends_at ? `<p class="meta">Duration: ${escapeHtml(formatDate(data.starts_at) || '—')} → ${escapeHtml(formatDate(data.ends_at || data.deadline_date) || '—')}</p>` : ''}
         ${cover ? `<img class="post-cover"  src="${escapeHtml(cover)}" alt="">` : ''}
@@ -80,6 +81,7 @@
         ${renderReactions(data)}
       </article>`;
       bindReactions(box);
+      initVoicePlayers(box);
       document.title = `${data.title} · TK Cam Norte`;
       const read = await apiJson('/announcements?resource=receipts', {method:'POST', body:JSON.stringify({announcementId:id,action:'read',version:versionOf(data)})});
       if (read.ok) loadNotifications();
