@@ -21,56 +21,34 @@
   </header>
   <main class="container">
     <p class="meta" style="margin-bottom:12px"><a href="/" style="display:inline-flex;align-items:center;gap:4px"><span class="icon" data-icon="chevronLeft" aria-hidden="true" style="width:14px;height:14px"></span> Balik sa anunsyo</a></p>
-    <div id="post"></div><section id="responseCard" class="card" hidden></section>
-    <section class="card">
-      <h2>Mga komento</h2>
-      <div id="comments" class="comments-list" style="margin:12px 0"></div>
-      <div class="comment-composer">
-        <textarea class="comment-text" id="commentText" rows="1" maxlength="1000" placeholder="Magtanong o mag-reply..."></textarea>
-        <button class="btn" id="sendComment" type="button">Send</button>
-      </div>
+    <div id="post"></div><section id="responseCard" class="ack-panel" hidden></section>
+    <section class="card comments-card" aria-labelledby="commentsHeading">
+      <h2 id="commentsHeading">Comments <span class="comment-count" id="commentCount">0</span></h2>
+      <form class="composer composer-main" id="commentForm">
+        <textarea rows="1" maxlength="1000" id="commentText" placeholder="Ask a question or leave a comment…" aria-label="Write a comment"></textarea>
+        <button class="btn" id="sendComment" type="submit">Post</button>
+      </form>
+      <div id="comments" class="comments-list"></div>
     </section>
   </main>
   <div id="bottomNavHost"></div>
   <script type="module">
     import {
       requireAuth, initShell, apiJson, escapeHtml, formatDate, relativeTime,
-      deadlineMeta, categoryLabel, renderReactions, bindReactions, getUser,
-      avatarUrl, showToast, bottomNav, coverOf, isOngoing, autoGrow, icon, loadNotifications
+      deadlineMeta, categoryLabel, renderReactions, bindReactions,
+      avatarUrl, bottomNav, coverOf, isOngoing, icon, loadNotifications
     } from '/js/common.js';
 
-    import { versionOf, isCurrent } from '/js/dates.js';
+    import { versionOf } from '/js/dates.js';
+    import { renderAcknowledgment } from '/js/acknowledge.js';
+    import { initComments } from '/js/comments.js';
     let currentPost;
     const user = await requireAuth();
     if (!user) throw new Error('auth');
     initShell(user);
     document.getElementById('bottomNavHost').innerHTML = bottomNav('feed');
-    autoGrow(document.getElementById('commentText'));
     const id = new URLSearchParams(location.search).get('id');
     if (!id) location.href = '/';
-
-    function commentHtml(c) {
-      const me = getUser();
-      const canManage = me && (me.id === c.user_id || me.role === 'admin');
-      const person = c.user || {};
-      return `<div class="comment" data-comment="${escapeHtml(c.id)}">
-        <img class="comment-avatar" src="${escapeHtml(avatarUrl(person, person.full_name))}" alt="">
-        <div class="comment-head">
-          <strong>${escapeHtml(person.full_name || 'Member')}</strong>
-          <small>${relativeTime(c.created_at)}</small>
-        </div>
-        <p class="comment-body">${escapeHtml(c.text)}</p>
-        ${canManage ? `<div class="comment-actions"><button type="button" data-edit-comment="${escapeHtml(c.id)}">Edit</button><button type="button" data-del-comment="${escapeHtml(c.id)}">Delete</button></div>` : ''}
-      </div>`;
-    }
-
-    async function loadComments() {
-      const box = document.getElementById('comments');
-      const { ok, data, error } = await apiJson(`/comments?announcementId=${encodeURIComponent(id)}`);
-      if (!ok) { box.innerHTML = `<p class="meta">${escapeHtml(error)}</p>`; return; }
-      if (!data?.length) { box.innerHTML = '<p class="meta">Unang magtanong.</p>'; return; }
-      box.innerHTML = data.map(commentHtml).join('');
-    }
 
     async function loadPost() {
       const box = document.getElementById('post');
@@ -105,71 +83,12 @@
       document.title = `${data.title} · TK Cam Norte`;
       const read = await apiJson('/announcements?resource=receipts', {method:'POST', body:JSON.stringify({announcementId:id,action:'read',version:versionOf(data)})});
       if (read.ok) loadNotifications();
-      await renderResponse();
+      await renderAcknowledgment({ box: document.getElementById('responseCard'), post: currentPost, user, id });
     }
 
-
-    async function renderResponse() {
-      const box = document.getElementById('responseCard');
-      if (!currentPost?.requires_ack) { box.hidden = true; return; }
-      box.hidden = false;
-      const {ok, data} = await apiJson('/announcements?resource=receipts');
-      if (!ok) { box.innerHTML = '<p class="meta">Response tracking is unavailable. Please try again later.</p>'; return; }
-      const receipt = data.find(r => r.announcement_id === id);
-      const acknowledged = isCurrent(receipt?.acknowledged_version, currentPost);
-      box.innerHTML = `<div class="response-row"><div><h3>${acknowledged ? 'Acknowledged. Thank you.' : 'Please acknowledge this update'}</h3><p class="meta">${acknowledged ? 'Your acknowledgment of this version is saved.' : 'Confirm that you have read and understood these instructions.'}</p></div><button class="btn ${acknowledged ? 'btn-ghost' : ''}" id="acknowledge" ${acknowledged ? 'disabled' : ''}>${acknowledged ? 'Acknowledged' : 'I acknowledge'}</button></div>${user.role === 'admin' ? '<div class="response-list" id="responseList">Loading member responses…</div>' : ''}`;
-      document.getElementById('acknowledge').onclick = async e => {
-        e.target.disabled = true;
-        const result = await apiJson('/announcements?resource=receipts',{method:'POST',body:JSON.stringify({announcementId:id,action:'acknowledge',version:versionOf(currentPost)})});
-        if (!result.ok) { e.target.disabled = false; showToast(result.error,'error'); return; }
-        renderResponse();
-      };
-      if (user.role === 'admin') {
-        const [responses, members] = await Promise.all([apiJson('/announcements?resource=receipts&announcementId='+encodeURIComponent(id)),apiJson('/users/all')]);
-        const list = document.getElementById('responseList');
-        if (!responses.ok || !members.ok) { list.textContent = 'Member responses could not be loaded.'; return; }
-        const byUser = new Map(responses.data.map(r => [r.user_id, r]));
-        list.innerHTML = '<strong>Member acknowledgments</strong>' + members.data.map(m => `<div>${escapeHtml(m.full_name)} <span class="meta"> · ${isCurrent(byUser.get(m.id)?.acknowledged_version,currentPost) ? 'Acknowledged' : 'Awaiting acknowledgment'}</span></div>`).join('');
-      }
-    }
-
-    document.getElementById('sendComment').onclick = async () => {
-      const textEl = document.getElementById('commentText');
-      const text = textEl.value.trim();
-      if (!text) return;
-      const btn = document.getElementById('sendComment');
-      btn.disabled = true;
-      const { ok, error } = await apiJson('/comments', { method: 'POST', body: JSON.stringify({ announcementId: id, text }) });
-      btn.disabled = false;
-      if (!ok) return showToast(error, 'error');
-      textEl.value = '';
-      textEl.style.height = 'auto';
-      textEl.dispatchEvent(new Event('input'));
-      loadComments();
-    };
-
-    document.getElementById('comments').onclick = async (e) => {
-      const del = e.target.closest('[data-del-comment]');
-      const edit = e.target.closest('[data-edit-comment]');
-      if (del) {
-        if (!confirm('Delete this comment?')) return;
-        const { ok, error } = await apiJson(`/comments?commentId=${encodeURIComponent(del.dataset.delComment)}`, { method: 'DELETE' });
-        if (!ok) return showToast(error, 'error');
-        loadComments();
-      }
-      if (edit) {
-        const wrap = edit.closest('.comment');
-        const current = wrap?.querySelector('.comment-body')?.textContent || '';
-        const next = prompt('Edit comment', current);
-        if (next == null || !next.trim()) return;
-        const { ok, error } = await apiJson('/comments', { method: 'PUT', body: JSON.stringify({ commentId: edit.dataset.editComment, text: next.trim() }) });
-        if (!ok) return showToast(error, 'error');
-        loadComments();
-      }
-    };
 
     loadPost();
-    loadComments();
+    initComments({ announcementId: id, user, listEl: document.getElementById('comments'), formEl: document.getElementById('commentForm') });
   </script>
 </body>
 </html>

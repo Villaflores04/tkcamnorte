@@ -47,6 +47,7 @@ create table if not exists public.comments (
   id uuid primary key default gen_random_uuid(),
   announcement_id uuid references public.announcements(id) on delete cascade,
   user_id uuid references public.users(id) on delete cascade,
+  parent_id uuid references public.comments(id) on delete cascade,
   text text not null,
   created_at timestamptz not null default now()
 );
@@ -62,6 +63,7 @@ create table if not exists public.announcement_reactions (
 
 create index if not exists idx_announcements_created on public.announcements (is_pinned desc, created_at desc);
 create index if not exists idx_comments_announcement on public.comments (announcement_id, created_at);
+create index if not exists idx_comments_parent on public.comments (parent_id);
 create index if not exists idx_reactions_announcement on public.announcement_reactions (announcement_id);
 create index if not exists idx_announcements_dates on public.announcements (deadline_date, starts_at, ends_at);
 
