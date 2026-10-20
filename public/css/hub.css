@@ -24,17 +24,17 @@
   --blue-50:var(--soft);--blue-700:var(--blue);--blue-900:var(--ink);--yellow:var(--gold-bright);
   color-scheme:light}
 html.dark{
-  --bg:#091325;--surface:#101f39;--surface-2:#16294b;
-  --ink:#e8effd;--muted:#a3b3cf;--line:#223858;--line-strong:#34507c;
-  --blue:#86adff;--btn:#2f6ee6;--on-btn:#fff;--soft:#172b50;--soft-ink:#b4ccff;
-  --navy:#050d1e;
-  --gold:#f2c75c;--gold-bright:#f2c75c;--gold-soft:#2c2410;--gold-ink:#f4d98d;--gold-line:#5d4916;
-  --danger:#ff94a2;--danger-soft:#3a1823;--ok:#74d79a;--ok-soft:#10301f;
-  --hero-from:#0d2a62;--hero-to:#16478f;--hero-ink:#fff;--hero-muted:#c4d6f5;
-  --nav-bg:#0b1a33;--nav-ink:#c3d2ec;--nav-hover:#ffffff12;--nav-active-bg:#172b50;--nav-active-ink:#fff;--nav-line:#223858;
+  --bg:#060d1c;--surface:#0e1b34;--surface-2:#13244a;
+  --ink:#eef3fd;--muted:#a4b4d0;--line:#1c3158;--line-strong:#2d4a7b;
+  --blue:#8fb4ff;--btn:#2f6ee6;--on-btn:#fff;--soft:#16294f;--soft-ink:#bcd2ff;
+  --navy:#040a16;
+  --gold:#e9bd4f;--gold-bright:#f2c75c;--gold-soft:#231d10;--gold-ink:#f4d98d;--gold-line:#5a4716;
+  --danger:#ff94a2;--danger-soft:#38171f;--ok:#74d79a;--ok-soft:#0e2c1e;
+  --hero-from:#0b2a66;--hero-to:#1a4b99;--hero-ink:#fff;--hero-muted:#c9d9f6;
+  --nav-bg:#050c1a;--nav-ink:#b9c8e3;--nav-hover:#ffffff0f;--nav-active-bg:#11264d;--nav-active-ink:#fff;--nav-line:#16294d;
   --focus:#f2c75c;
-  --shadow:0 1px 2px #0006,0 8px 24px #0004;
-  --shadow-lg:0 24px 64px #000a;
+  --shadow:0 1px 0 #ffffff08 inset,0 10px 28px #0007;
+  --shadow-lg:0 24px 64px #000b;
   color-scheme:dark}
 
 /* ---------- Base ---------- */
@@ -554,3 +554,74 @@ html.dark .nav-links a:focus-visible{outline-color:var(--gold-bright)}
   .stage-layer,.auth-orbit,.auth-gold-ribbon,.auth-star{transform:none!important}
   .quick-stat:hover{transform:none}
 }
+
+
+/* ==========================================================================
+   Dark mode finish: midnight blue with gold light. Layers get lighter as they
+   come forward (page < sidebar/cards < raised), edges catch a thin highlight.
+   ========================================================================== */
+html.dark body{background:radial-gradient(900px 420px at 78% -120px,#12306a55,transparent 70%),var(--bg);background-attachment:fixed}
+html.dark .topbar{background:color-mix(in srgb,#091630 90%,transparent);border-bottom-color:#16294d}
+html.dark .nav-links{background:linear-gradient(180deg,#07112a,#050c1a);border-right-color:var(--nav-line)}
+html.dark .nav-links a{color:#aebfdc}
+html.dark .nav-links a:hover{background:#ffffff0d;color:#fff}
+html.dark .nav-links a.active{background:linear-gradient(90deg,#17305f,#11264d);color:#fff;box-shadow:inset 3px 0 var(--gold-bright)}
+html.dark .card,html.dark .rail-card,html.dark .quick-stat,html.dark .stat-card,html.dark .ack-panel,html.dark .welcome-date{background:linear-gradient(180deg,#112146,#0d1a33);border-color:var(--line);box-shadow:inset 0 1px 0 #ffffff0d,0 10px 28px #00000066}
+html.dark .announcement:hover,html.dark .quick-stat:hover{border-color:var(--line-strong)}
+html.dark .quick-stat:hover{box-shadow:inset 0 1px 0 #ffffff12,0 16px 36px #0009}
+html.dark .announcement.pinned{border-left-color:var(--gold-bright)}
+html.dark .stat-gold{border-top-color:var(--gold-bright)}
+html.dark .feature{background:radial-gradient(520px 260px at 92% 0%,#f2c75c26,transparent 65%),radial-gradient(700px 360px at 0% 110%,#2f6ee655,transparent 70%),linear-gradient(135deg,#0a2559,#123a82 60%,#1a4b99);border-color:#ffffff22;box-shadow:inset 0 1px 0 #ffffff1c,0 24px 64px #000b}
+html.dark .ticket{background:linear-gradient(165deg,#17305f,#0c1a38);color:#e9f1ff;border-color:var(--gold-line);box-shadow:0 18px 40px #0009,inset 0 1px 0 #ffffff1f,inset 0 0 0 4px #0c1a38,inset 0 0 0 5px #5a471680}
+html.dark .ticket-date{border-bottom-color:var(--gold-line)}
+html.dark .ticket-month{color:var(--gold-bright)}
+html.dark .ticket-day{color:#fff;text-shadow:0 2px 18px #f2c75c40}
+html.dark .ticket-weekday{color:#b7c8e6}
+html.dark .ticket-label{color:var(--gold-bright)}
+html.dark .ticket-value{color:#f1f6ff}
+@media(max-width:760px){html.dark .ticket-date{border-right-color:var(--gold-line)}}
+html.dark .btn-yellow{background:linear-gradient(180deg,#f7d57a,#eab93f);color:#1b1404;border-color:#f6d77d}
+html.dark .btn:not(.btn-ghost):not(.btn-yellow):not(.btn-danger):not(.btn-success){background:linear-gradient(180deg,#3b7bf0,#2a63d6)}
+html.dark .btn-ghost{background:#ffffff08;border-color:var(--line-strong);color:var(--ink)}
+html.dark .btn-ghost:hover{background:#ffffff12}
+html.dark .icon-btn,html.dark .hamburger{background:#ffffff08;border-color:var(--line-strong)}
+html.dark .icon-btn:hover,html.dark .hamburger:hover{background:#ffffff14}
+html.dark input,html.dark textarea,html.dark select{background:#09152c;border-color:var(--line-strong)}
+html.dark input:hover,html.dark textarea:hover,html.dark select:hover{border-color:#4f78bb}
+html.dark .chip,html.dark .tabs button{background:#ffffff08;border-color:var(--line-strong)}
+html.dark .chip:hover,html.dark .tabs button:hover{background:#ffffff12}
+html.dark .chip.active,html.dark .tabs button.active{background:linear-gradient(180deg,#3b7bf0,#2a63d6);border-color:#4f86f2}
+html.dark .badge{background:#17305a;color:#c4d7ff}
+html.dark .badge-pin,html.dark .badge-soon{background:#2a2111;color:var(--gold-ink);box-shadow:inset 0 0 0 1px var(--gold-line)}
+html.dark .badge-muted{background:#ffffff0f;color:var(--muted)}
+html.dark .badge-unread{background:#2f6ee6;color:#fff}
+html.dark .announcement-title:hover{color:#fff}
+html.dark .body-text,html.dark .summary{color:#b3c2dc}
+html.dark .card-foot,html.dark .agenda-item,html.dark .comment,html.dark .ack-list li{border-color:#1a2f56}
+html.dark .agenda-date,html.dark .stat-glyph,html.dark .rail-heading-icon{background:#16294f;color:#bcd2ff;box-shadow:inset 0 0 0 1px #ffffff0a}
+html.dark .stat-gold .stat-glyph{background:#2a2111;color:var(--gold-ink);box-shadow:inset 0 0 0 1px var(--gold-line)}
+html.dark .rx-btn{background:#ffffff08;border-color:var(--line-strong)}
+html.dark .rx-btn.active{background:#16294f;border-color:#5b8def;color:#cfe0ff}
+html.dark .notice{background:#0b1730}
+html.dark .deadline-box{background:#241d10;box-shadow:inset 3px 0 var(--gold-bright)}
+html.dark .voice-card{background:linear-gradient(180deg,#1e1a12,#16130c);border-color:var(--gold-line)}
+html.dark .vplayer{background:#0a1530;border-color:var(--gold-line)}
+html.dark .community-note{background:linear-gradient(180deg,#112146,#0d1a33);border-left-color:var(--gold-bright)}
+html.dark .upload-zone{background:#0a1530;border-color:var(--line-strong)}
+html.dark .upload-zone:hover{background:#13244a;border-color:#5b8def}
+html.dark .cal-day{background:#0f1f3e}
+html.dark .cal-day:hover{border-color:#5b8def}
+html.dark .cal-day.selected{background:linear-gradient(180deg,#3b7bf0,#2a63d6)}
+html.dark .cal-day.today{border-color:var(--gold-bright);box-shadow:inset 0 0 0 1px var(--gold-bright)}
+html.dark .replies{border-left-color:var(--gold-line)}
+html.dark .comment-count{background:#16294f;color:#bcd2ff}
+html.dark .mobile-bottom-nav{background:color-mix(in srgb,#060f24 94%,transparent);border-top-color:#16294d}
+html.dark .mobile-bottom-nav a.active{background:#14295a;color:#fff}
+html.dark .mobile-bottom-nav a.active:before{background:var(--gold-bright)}
+html.dark .nav-links .nav-user{border-top-color:#16294d}
+html.dark .preview-dialog,html.dark .notify-panel{background:linear-gradient(180deg,#112146,#0d1a33);border-color:var(--line-strong)}
+html.dark .toast{background:#0a1430;border-color:var(--line-strong)}
+/* The generated initials avatars are light discs; tone them down so they stop glaring. */
+html.dark .author-row img,html.dark .comment-avatar,html.dark .nav-avatar,html.dark .profile-photo{filter:brightness(.8) saturate(.85)}
+@media(max-width:1000px){html.dark .nav-links{background:#08122a}}
+html.dark .owner-person img{filter:brightness(.8) saturate(.85)}
