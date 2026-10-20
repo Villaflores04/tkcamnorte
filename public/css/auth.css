@@ -29,7 +29,8 @@ html:not(.dark) .auth-v2 .auth-intro{background:linear-gradient(145deg,#1769e4,#
 .auth-v2 .input-shell .input-icon{top:15px}
 .auth-v2 .password-wrap button{top:4px}
 .auth-v2 .auth-submit{height:49px;border-radius:11px;font-size:13px;justify-content:space-between;padding:0 18px;margin-top:13px;color:white;box-shadow:0 7px 18px #1971eb17}
-html.dark .auth-v2 .auth-submit{color:#102544}
+html.dark .auth-v2 .auth-submit{color:#fff}
+html.dark .auth-v2 .auth-intro{background:radial-gradient(520px 300px at 85% 0%,#f2c75c22,transparent 65%),linear-gradient(150deg,#0a2559,#102f6b 55%,#0b1d44)}
 .auth-help{font-size:11px;color:var(--muted);line-height:1.7;margin:10px 0 5px}
 .auth-switch{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);margin-top:28px;padding-top:21px;font-size:12px;color:var(--muted)}
 .auth-switch a{font-weight:700;white-space:nowrap}
