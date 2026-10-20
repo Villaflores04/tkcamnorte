@@ -62,7 +62,10 @@ test('detail records read separately, then persists explicit acknowledgment',asy
  assert.equal(w.document.querySelector('#acknowledge').disabled,false);
  w.document.querySelector('#acknowledge').click();await flush();
  assert.ok(calls.some(c=>c.request.body?.includes('"action":"acknowledge"')));
- assert.equal(w.document.querySelector('#acknowledge').textContent,'Acknowledged');dom.window.close();
+ assert.equal(w.document.querySelector('#acknowledge').textContent.trim(),'Got it!');
+ assert.equal(w.document.querySelector('#acknowledge').disabled,true);
+ assert.ok(w.document.querySelector('#responseCard').classList.contains('is-done'));
+ assert.equal(w.document.querySelector('#ackDetails').hidden,true);dom.window.close();
 });
 test('coordinator templates, preview and local draft save retain content',async()=>{
  const {w,dom}=await setup('admin.html');const template=w.document.querySelector('#template');template.value='rehearsal';template.dispatchEvent(new w.Event('change'));
