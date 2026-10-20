@@ -46,3 +46,13 @@ test('five minutes of voice stays under the 8 MB upload limit', () => {
   const bytes = 44 + VOICE_SAMPLE_RATE * 300 * 2;
   assert.ok(bytes < 8 * 1024 * 1024, `5 minutes is ${bytes} bytes`);
 });
+
+test('voice player trusts the saved length when the file reports nonsense', async () => {
+  const { trustedDuration } = await import('../public/js/voice-player.js');
+  assert.equal(trustedDuration(4, 60019), 4);        // 16:40:19 in a browser player
+  assert.equal(trustedDuration(4, Infinity), 4);
+  assert.equal(trustedDuration(4, NaN), 4);
+  assert.equal(trustedDuration(4, 4.2), 4.2);        // file agrees, use it
+  assert.equal(trustedDuration(null, 12), 12);       // old post with no saved length
+  assert.equal(trustedDuration(null, Infinity), 0);
+});
